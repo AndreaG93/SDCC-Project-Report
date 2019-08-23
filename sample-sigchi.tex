@@ -158,38 +158,134 @@ Although the execution of a job with our algorithms uses more resources respect 
 
 \section{Introduction}
 
-dasdas\footnote{dsadsadsadasdasdasda} fds \cite{Abril07}
+An important goal in distributed-systems design is to construct a system in such a way it can provide its services even in the presence of faults. In other words, whenever a failure
+occurs, the system should continue to operate in an acceptable way; that is a distributed system is expected to be \textit{fault tolerant}. As known, many fault types exists in literature, the most serious of which are \textit{arbitrary failures}, also known as \textit{Byzantine failures}; whenever a that type of fault occurs, a server may produce arbitrary responses at arbitrary times which cannot be detected as being incorrect.
 
-ACM's consolidated article template, introduced in 2017, provides a
-consistent \LaTeX\ style for use across ACM publications, and
-incorporates accessibility and metadata-extraction functionality
-necessary for future Digital Library endeavors. Numerous ACM and
-SIG-specific \LaTeX\ templates have been examined, and their unique
-features incorporated into this single new template.
+In this paper we present an Arbitrary Fault-Tolerant (AFT) MapReduce runtime system. 
 
-If you are new to publishing with ACM, this document is a valuable
-guide to the process of preparing your work for publication. If you
-have published with ACM before, this document provides insight and
-instruction into more recent changes to the article template.
+The key technique used to manage faults is, as , to use redundancy.The key approach to tolerating a faulty process is to organize several identical processes into a group. 
 
-The ``\verb|acmart|'' document class can be used to prepare articles
-for any ACM publication --- conference or journal, and for any stage
-of publication, from review to final ``camera-ready'' copy, to the
-author's own version, with {\itshape very} few changes to the source.
+
+ Our BFT
+MapReduce follows the approach of executing each task more
+than once, similarly to the works mentioned above. The chal-
+
+
+
+Process groups are part of the solution for building fault-tolerant systems.
+In particular, having a group of identical processes allows us to mask one
+or more faulty processes in that group. In other words, we can replicate
+processes and organize them into a group to replace a single (vulnerable)
+process with a (fault tolerant) group. 
+
+An important issue with using process groups to tolerate faults is how
+much replication is needed. To simplify our discussion, let us consider
+only replicated-write systems. A system is said to be k-fault tolerant if it
+can survive faults in k components and still meet its specifications. If the
+components, say processes, fail silently, then having k + 1 of them is enough
+to provide k-fault tolerance. If k of them simply stop, then the answer from
+the other one can be used.
+
+On the other hand, if processes exhibit arbitrary failures, continuing to
+run when faulty and sending out erroneous or random replies, a minimum
+of 2k + 1 processes are needed to achieve k-fault tolerance. In the worst case,
+the k failing processes could accidentally (or even intentionally) generate the
+same reply. However, the remaining k + 1 will also produce the same answer,
+so the client or voter can just believe the majority.
+
+
+
 
 \section{Template Overview}
-As noted in the introduction, the ``\verb|acmart|'' document class can
-be used to prepare many different kinds of documentation --- a
-double-blind initial submission of a full-length technical paper, a
-two-page SIGGRAPH Emerging Technologies abstract, a ``camera-ready''
-journal article, a SIGCHI Extended Abstract, and more --- all by
-selecting the appropriate {\itshape template style} and {\itshape
-  template parameters}.
 
-This document will explain the major features of the document
-class. For further information, the {\itshape \LaTeX\ User's Guide} is
-available from
-\url{https://www.acm.org/publications/proceedings-template}.
+
+\subsection{System Architecture}
+
+Our system is composed by a set of distributed processes:
+
+\begin{description}
+\item[Client Process] the clients that request the execution of jobs composed by map and reduce tasks
+
+\item[Leader Primary Process] It manages the execution of word-count jobs received from clients coordinating Worker Nodes 
+
+\item[Backup Primary Process] It manages the execution of word-count jobs received from clients coordinating Worker Nodes 
+
+\item[Worker Process] A Worker Process executes map and reduce task 
+
+\item[Worker Group] All system's nodes in which worker process are running are logically split into several \textit{Groups}, that is sets of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. Although, for performance reasons, not always happen, when a task is sent to the group itself, all members of the group receive it.
+
+
+
+The key property that all groups have is that when a
+message is sent to the group itself, all members of the group receive it.
+
+
+ primary coordinates all write
+operations
+
+
+ In other words, we can replicate processes and organize them into a group to replace a single (vulnerable) process with a (fault tolerant) group.
+
+
+
+ When a task is  for work is generated, either
+by an external client or by one of the workers, it is sent to the coordinator.
+
+
+
+
+
+as  a set of Task- Trackers that execute tasks
+\end{description}
+
+
+We assume that clients are always correct, because if they are not there is no point in worrying about the correctness of the job’s output.
+
+The host where current master process is running may fail, for example by crashing or by losing network connectivity. Therefore, to ensure system availability in such a way that it can keep on providing its services, multiple master process copies of run on different host, and that a backup copy is promoted to become the new leader when the previous leader fails.
+
+
+In order to decide when the current leader master process has failed and to elect a new leader, we have used a coordination service like Apache ZooKeeper. 
+
+
+
+
+
+
+
+
+
+
+
+The Mesos master stores information about the active tasks and registered frameworks in memory: it does not persist it to disk or attempt to ensure that this information is preserved after a master failover. This helps the Mesos master scale to large clusters with many tasks and frameworks. A downside of this design is that after a failure, more work is required to recover the lost in-memory master state.
+
+
+
+
+
+
+
+
+ Mesos consists of a master daemon that manages agent daemons running on each cluster node, and Mesos frameworks that run tasks on these agents.
+
+
+The Mesos master stores information about the active tasks and registered frameworks in memory: it does not persist it to disk or attempt to ensure that this information is preserved after a master failover. This helps the Mesos master scale to large clusters with many tasks and frameworks. A downside of this design is that after a failure, more work is required to recover the lost in-memory master state.
+
+System model. The system is composed by a set of dis-
+tributed processes: the clients that request the execution of
+jobs composed by map and reduce tasks, the JobTracker that
+manages the execution of a job as explained, a set of Task-
+Trackers that execute tasks, the NameNode that manages ac-
+cess to data stored in HDFS, and a set of DataNodes where
+HDFS stores file blocks. We say that a process is correct if
+it follows the algorithm, otherwise we say it is faulty. We
+also use these two words to denominate a task (map or re-
+duce) that, respectively, returns the result that corresponds to
+an execution in a correct TaskTracker (correct) or not (faulty).
+Processes run in servers in a datacenter.
+
+
+
+
 
 \subsection{Template Styles}
 
