@@ -304,6 +304,46 @@ replicas (typically 3f + 1) and more messages exchanged.
 
 
 
+\subsection{Crash failure detection} Workers nodes crash faults are detected using ZooKeeper's coordination service. As known, ZooKeeper allows users to store persistently coordination data into several hierarchically grouped nodes, called \textit{znode}. However, ZooKeeper has the notion of \textit{ephemeral nodes} too; these special znodes exists as long as the session that created the znode is active, that is when the session ends the znode is deleted. A ZooKeeper client establishes a session with the ZooKeeper service
+
+
+At session expiration the cluster will delete any/all ephemeral nodes owned by that session and immediately notify any/all connected clients of the change 
+
+In this way, is very easy to keep check the status of worker nodes by current primary process. If any of worker node crash, ZooKeeper automatically delete znode associated to crashed server and notifies current leader.
+
+\subsection{Deferred execution} As known, arbitrary faults are very hard to detect and manage 
+
+
+
+Deferred execution. Crash faults are detected by the previ-
+ously existing Hadoop mechanisms, and arbitrary faults are
+uncommon, so there is no point in always executing $2f + 1$ replicas to usually obtain the same result.
+
+
+
+
+By default, current leader primary process starts only $f + 1$ replicas of the same task, then wait results checking if they all return the same result. If a timeout elapses, or some returned results do not match, more replicas (up to $f$) are started, until there are $f + 1$ matching replies.
+
+
+
+In the best case, without Byzantine faults, only f + 1 replicas are started. If arbitrary faults are uncommon, we have a < f + 1 replica started reducing the overhead 
+
+
+
+
+
+\subsection{Digest outputs} $f + 1$ matching outputs of a given task (maps or reduces) have to be received to be considered correct. However, tasks output can have considerable size be large therefore to move data from workers to leader is useless. can increse uselessly network traffic, worsening performance.
+
+
+Digest outputs. f + 1 matching outputs of maps or reduces
+have to be received to be considered correct. These outputs
+tend to be large, so it is useful to fetch one output from some
+task replica and compare just digests (hashes). This way, it is
+still possible to validate the output without generating much
+additional network traffic.
+
+
+
 
 
 

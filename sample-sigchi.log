@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2019/dev/Debian) (preloaded format=pdflatex 2019.8.23)  26 AUG 2019 10:43
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2019/dev/Debian) (preloaded format=pdflatex 2019.8.26)  26 AUG 2019 18:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1188,13 +1188,21 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 ]
 Underfull \vbox (badness 3536) has occurred while \output is active []
 
-LaTeX Font Info:    Try loading font information for T1+zi4 on input line 312.
 
+Underfull \vbox (badness 2698) has occurred while \output is active []
+
+ [2.2]
+Overfull \hbox (10.05627pt too wide) in paragraph at lines 310--311
+[]\T1/LinuxLibertineT-TLF/m/n/10 (-20) At ses-sion ex-pi-ra-tion the clus-ter w
+ill delete any/all ephemeral
+ []
+
+LaTeX Font Info:    Try loading font information for T1+zi4 on input line 352.
 (/usr/share/texlive/texmf-dist/tex/latex/inconsolata/t1zi4.fd
 File: t1zi4.fd 2018/01/14 T1/zi4 (Inconsolata)
 )
 LaTeX Font Info:    Font shape `T1/zi4/m/n' will be
-(Font)              scaled to size 10.0pt on input line 312.
+(Font)              scaled to size 10.0pt on input line 352.
 Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `zi4' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
@@ -1206,86 +1214,87 @@ Package microtype Info: Character `textemdash ' is missing
 (microtype)             in font `T1/zi4/m/n/10'.
 (microtype)             Ignoring protrusion settings for this character.
 
-Underfull \vbox (badness 2698) has occurred while \output is active []
+Underfull \vbox (badness 1975) has occurred while \output is active []
 
- [2.2]
 LaTeX Font Info:    Font shape `T1/LinuxLibertineT-TLF/m/it' will be
-(Font)              scaled to size 7.3pt on input line 341.
+(Font)              scaled to size 7.3pt on input line 381.
 
-Overfull \hbox (1.20413pt too wide) in paragraph at lines 345--349
+Overfull \hbox (1.20413pt too wide) in paragraph at lines 385--389
 \T1/LinuxLibertineT-TLF/m/n/10 (-20) fer-ence sub-mis-sion. Anonymizes the work
  and in-cludes
  []
 
-LaTeX Font Info:    Font shape `T1/LinuxLibertineT-TLF/m/n' will be
-(Font)              scaled to size 7.3pt on input line 437.
 [3.3]
-Overfull \hbox (3.13414pt too wide) in paragraph at lines 464--467
+LaTeX Font Info:    Font shape `T1/LinuxLibertineT-TLF/m/n' will be
+(Font)              scaled to size 7.3pt on input line 477.
+
+Overfull \hbox (3.13414pt too wide) in paragraph at lines 504--507
 []\T1/LinuxLibertineT-TLF/m/n/10 (-20) User-defined key-words are a comma-separ
 ated list of words
  []
 
 
-Overfull \hbox (5.78854pt too wide) in paragraph at lines 473--477
+Overfull \hbox (5.78854pt too wide) in paragraph at lines 513--517
 [][]\T1/zi4/m/n/10 section[]\T1/LinuxLibertineT-TLF/m/n/10 (-20) , [][]\T1/zi4/
 m/n/10 subsection[]\T1/LinuxLibertineT-TLF/m/n/10 (-20) , [][]\T1/zi4/m/n/10 su
 bsubsection[]\T1/LinuxLibertineT-TLF/m/n/10 (-20) , and [][]\T1/zi4/m/n/10 para
 graph[]\T1/LinuxLibertineT-TLF/m/n/10 (-20) . They
  []
 
-
-Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 505.
-
-
-Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 505.
-
-
-Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 529.
-
-
-Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 529.
-
 [4.4]
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 593.
+surrounding objects on input line 545.
 
 
 Class acmart Warning: \vspace should only be used to provide space above/below 
-surrounding objects on input line 593.
+surrounding objects on input line 545.
 
-<sample-franklin.png, id=180, 411.5375pt x 323.2075pt>
+
+Class acmart Warning: \vspace should only be used to provide space above/below 
+surrounding objects on input line 569.
+
+
+Class acmart Warning: \vspace should only be used to provide space above/below 
+surrounding objects on input line 569.
+
+
+Class acmart Warning: \vspace should only be used to provide space above/below 
+surrounding objects on input line 633.
+
+
+Class acmart Warning: \vspace should only be used to provide space above/below 
+surrounding objects on input line 633.
+
+<sample-franklin.png, id=175, 411.5375pt x 323.2075pt>
 File: sample-franklin.png Graphic file (type png)
 <use sample-franklin.png>
-Package pdftex.def Info: sample-franklin.png  used on input line 595.
+Package pdftex.def Info: sample-franklin.png  used on input line 635.
 (pdftex.def)             Requested size: 241.14749pt x 189.3888pt.
 
-Overfull \hbox (10.17221pt too wide) in paragraph at lines 622--622
+Overfull \hbox (10.17221pt too wide) in paragraph at lines 662--662
 []    \T1/zi4/m/n/10 \includegraphics[width=\textwidth]{sampleteaser}[] 
  []
 
+[5.5 <./sample-franklin.png>]
 LaTeX Font Info:    Font shape `T1/LinuxLibertineT-TLF/m/sc' will be
-(Font)              scaled to size 10.0pt on input line 626.
+(Font)              scaled to size 10.0pt on input line 666.
 
-Overfull \hbox (18.26735pt too wide) in paragraph at lines 633--635
+Overfull \hbox (18.26735pt too wide) in paragraph at lines 673--675
 \T1/LinuxLibertineT-TLF/m/n/10 (-20) with these two com-mands, placed just be-f
 ore the [][]\T1/zi4/m/n/10 \end{document}
  []
 
 
-Overfull \hbox (61.66254pt too wide) in paragraph at lines 642--647
+Overfull \hbox (61.66254pt too wide) in paragraph at lines 682--687
 \T1/LinuxLibertineT-TLF/m/n/10 (-20) please in-clude this com-mand in the \T1/L
 inuxLibertineT-TLF/b/n/10 pre-am-ble \T1/LinuxLibertineT-TLF/m/n/10 (-20) (be-f
 ore ``[][]\T1/zi4/m/n/10 \begin{document}[]\T1/LinuxLibertineT-TLF/m/n/10 (-20)
  '')
  []
 
-[5.5 <./sample-franklin.png>]
-Overfull \hbox (27.19371pt too wide) in paragraph at lines 703--706
+
+Overfull \hbox (27.19371pt too wide) in paragraph at lines 743--746
 \T1/LinuxLibertineT-TLF/m/n/10 (-20) If your work needs an ap-pen-dix, add it b
 e-fore the ``[][]\T1/zi4/m/n/10 \end{document}[]\T1/LinuxLibertineT-TLF/m/n/10 
 (-20) ''
@@ -1295,94 +1304,180 @@ Processing 'acks' comment.
 \openout3 = `comment.cut'.
 
  Comment 'acks' writing to comment.cut.
-Straight input of comment.cut. (./comment.cut) (./sample-sigchi.bbl
-Underfull \vbox (badness 1173) has occurred while \output is active []
+Straight input of comment.cut. (./comment.cut)
+No file sample-sigchi.bbl.
 
-LaTeX Info: Redefining \tempurl on input line 65.
-LaTeX Info: Redefining \tempurl on input line 80.
-LaTeX Info: Redefining \tempurl on input line 103.
-LaTeX Info: Redefining \tempurl on input line 141.
-LaTeX Info: Redefining \tempurl on input line 161.
-LaTeX Info: Redefining \tempurl on input line 176.
-LaTeX Info: Redefining \tempurl on input line 190.
-LaTeX Info: Redefining \tempurl on input line 232.
-LaTeX Info: Redefining \tempurl on input line 279.
- [6.6]
-LaTeX Info: Redefining \tempurl on input line 296.
-LaTeX Font Info:    Font shape `T1/LinuxLibertineT-TLF/m/it' will be
-(Font)              scaled to size 6.2pt on input line 325.
-LaTeX Info: Redefining \tempurl on input line 341.
-LaTeX Info: Redefining \tempurl on input line 355.
-LaTeX Info: Redefining \tempurl on input line 367.
-
-Underfull \hbox (badness 1270) in paragraph at lines 361--370
-[]\T1/LinuxLibertineT-TLF/m/n/8 (+20) Barack Obama. 2008.  A more per-fect unio
-n.  Video.   Re-
- []
-
-LaTeX Info: Redefining \tempurl on input line 380.
-LaTeX Info: Redefining \tempurl on input line 394.
-LaTeX Info: Redefining \tempurl on input line 465.
-LaTeX Info: Redefining \tempurl on input line 480.
-LaTeX Info: Redefining \tempurl on input line 492.
-LaTeX Info: Redefining \tempurl on input line 504.
-LaTeX Info: Redefining \tempurl on input line 518.
-)
-Overfull \hbox (1.22945pt too wide) in paragraph at lines 751--756
+Overfull \hbox (1.22945pt too wide) in paragraph at lines 791--796
 \T1/LinuxLibertineT-TLF/m/n/10 (-20) Lorem ip-sum do-lor sit amet, con-secte-tu
 r adip-isc-ing elit. Morbi
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-
-Package balance Warning: You have called \balance in second column
-(balance)                Columns might not be balanced.
-
-[7.7]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 777.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 777.
+[6.6] [7.7]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 817.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 817.
  (./sample-sigchi.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 777.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 777.
-Package rerunfilecheck Info: File `sample-sigchi.out' has not changed.
-(rerunfilecheck)             Checksum: E8582A72FEC3F11AD141EE66899FD101;4199.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 817.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 817.
+
+
+Package rerunfilecheck Warning: File `sample-sigchi.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `sample-sigchi.out':
+(rerunfilecheck)             Before: E8582A72FEC3F11AD141EE66899FD101;4199
+(rerunfilecheck)             After:  A5E20EFACD6C06A31A6939115B80757A;4554.
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
  ) 
 Here is how much of TeX's memory you used:
- 18429 strings out of 492615
- 277836 string characters out of 6131390
- 399483 words of memory out of 5000000
- 21413 multiletter control sequences out of 15000+600000
- 163473 words of font info for 342 fonts, out of 8000000 for 9000
+ 18263 strings out of 492615
+ 274246 string characters out of 6131390
+ 393483 words of memory out of 5000000
+ 21311 multiletter control sequences out of 15000+600000
+ 151133 words of font info for 297 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
- 60i,12n,94p,804b,645s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_ncsllp.enc}{/us
-r/share/texlive/texmf-dist/fonts/enc/dvips/newtx/libertinealt.enc}{/usr/share/t
-exlive/texmf-dist/fonts/enc/dvips/base/8r.enc}{/usr/share/texlive/texmf-dist/fo
-nts/enc/dvips/libertine/lbtn_oexx6f.enc}{/usr/share/texlive/texmf-dist/fonts/en
-c/dvips/inconsolata/i4-t1-4.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/
-libertine/lbtn_25tcsq.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libert
-ine/lbtn_7grukw.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lb
-tn_naooyc.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_76g
-pa5.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_nh77jq.en
-c}</usr/share/texlive/texmf-dist/fonts/type1/public/inconsolata/Inconsolata-zi4
-r.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinBiolinumT.
-pfb></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinBiolinumTB.p
-fb></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineT.pf
-b></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineTB.pf
-b></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineTI.pf
-b></usr/share/texlive/texmf-dist/fonts/type1/public/newtx/fxlri-7letters.pfb></
-usr/share/texlive/texmf-dist/fonts/type1/public/txfonts/rtxr.pfb></usr/share/te
-xlive/texmf-dist/fonts/type1/public/newtx/txexs.pfb></usr/share/texlive/texmf-d
-ist/fonts/type1/public/newtx/txsys.pfb></usr/share/texlive/texmf-dist/fonts/typ
-e1/public/newtx/zxlr.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/newt
-x/zxlri.pfb>
-Output written on sample-sigchi.pdf (7 pages, 667631 bytes).
+ 60i,11n,94p,804b,645s stack positions out of 5000i,500n,10000p,200000b,80000s
+pdfTeX warning (dest): name{cite.UMassCitations} has been referenced but does
+ not exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.R} has been referenced but does not exist, rep
+laced by a fixed one
+
+pdfTeX warning (dest): name{cite.CTANacmart} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.2004:ITE:1009386.1010128} has been referenced 
+but does not exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.MR781537} has been referenced but does not exi
+st, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.MR781536} has been referenced but does not exi
+st, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Kirschmer:2010:AEI:1958016.1958018} has been r
+eferenced but does not exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.SaeediJETC10} has been referenced but does not
+ exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.SaeediMEJ10} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.rous08} has been referenced but does not exist
+, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.JoeScientist001} has been referenced but does 
+not exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Lee05} has been referenced but does not exist,
+ replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Novak03} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Obama08} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Thornburg01} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Poker06} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Ablamowicz07} has been referenced but does not
+ exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.anisi03} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Clarkson85} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Harel78} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.VanGundy07} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Smith10} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Andler79} has been referenced but does not exi
+st, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Knuth97} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Douglass98} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Spector90} has been referenced but does not ex
+ist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Editor00a} has been referenced but does not ex
+ist, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Editor00} has been referenced but does not exi
+st, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Harel79} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Kosiur01} has been referenced but does not exi
+st, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.JCohen96} has been referenced but does not exi
+st, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Cohen07} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Abril07} has been referenced but does not exis
+t, replaced by a fixed one
+
+pdfTeX warning (dest): name{cite.Lamport:LaTeX} has been referenced but does no
+t exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.10} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.9} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{section*.16} has been referenced but does not exist
+, replaced by a fixed one
+
+pdfTeX warning (dest): name{section*.12} has been referenced but does not exist
+, replaced by a fixed one
+
+{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_ncsllp.enc}{/usr/
+share/texlive/texmf-dist/fonts/enc/dvips/newtx/libertinealt.enc}{/usr/share/tex
+live/texmf-dist/fonts/enc/dvips/inconsolata/i4-t1-4.enc}{/usr/share/texlive/tex
+mf-dist/fonts/enc/dvips/base/8r.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dv
+ips/libertine/lbtn_oexx6f.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/li
+bertine/lbtn_25tcsq.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertin
+e/lbtn_7grukw.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn
+_naooyc.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_76gpa
+5.enc}{/usr/share/texlive/texmf-dist/fonts/enc/dvips/libertine/lbtn_nh77jq.enc}
+</usr/share/texlive/texmf-dist/fonts/type1/public/inconsolata/Inconsolata-zi4r.
+pfb></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinBiolinumT.pf
+b></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinBiolinumTB.pfb
+></usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineT.pfb>
+</usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineTB.pfb>
+</usr/share/texlive/texmf-dist/fonts/type1/public/libertine/LinLibertineTI.pfb>
+</usr/share/texlive/texmf-dist/fonts/type1/public/newtx/fxlri-7letters.pfb></us
+r/share/texlive/texmf-dist/fonts/type1/public/txfonts/rtxr.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/public/newtx/txexs.pfb></usr/share/texlive/texmf-dis
+t/fonts/type1/public/newtx/txsys.pfb></usr/share/texlive/texmf-dist/fonts/type1
+/public/newtx/zxlr.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/newtx/
+zxlri.pfb>
+Output written on sample-sigchi.pdf (7 pages, 658327 bytes).
 PDF statistics:
- 396 PDF objects out of 1000 (max. 8388607)
- 349 compressed objects within 4 object streams
- 83 named destinations out of 1000 (max. 500000)
- 48898 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 369 PDF objects out of 1000 (max. 8388607)
+ 322 compressed objects within 4 object streams
+ 87 named destinations out of 1000 (max. 500000)
+ 48386 words of extra memory for PDF output out of 51595 (max. 10000000)
 
