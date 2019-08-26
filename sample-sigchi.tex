@@ -210,7 +210,7 @@ Our system is composed by a set of distributed processes:
 
 \item[Backup Primary Process] It manages the execution of word-count jobs received from clients coordinating Worker Nodes 
 
-\item[Worker Process] A Worker Process executes map and reduce task 
+\item[Worker Process] A Worker Process executes map and reduce task scheduleted by current Leader Primary Process. In order to achieve fault tolerance, any Worker Process must be run indepently on different host. In our implementation, each process run on independent Amazon EC2 server
 
 \item[Worker Group] All system's nodes in which worker process are running are logically split into several \textit{Groups}, that is sets of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. Although, for performance reasons, not always happen, when a task is sent to the group itself, all members of the group receive it.
 
@@ -282,6 +282,26 @@ also use these two words to denominate a task (map or re-
 duce) that, respectively, returns the result that corresponds to
 an execution in a correct TaskTracker (correct) or not (faulty).
 Processes run in servers in a datacenter.
+
+
+\subsection{The algorithm}
+
+In order to achieve 
+A simplistic solution to make MapReduce
+Byzantine fault-tolerant given the system model would be the
+following. First, the JobTracker starts 2f + 1 replicas of each
+map task in different servers and TaskTrackers. Second, the
+JobTracker starts also 2f + 1 replicas of each reduce task.
+Each reduce task fetches the output from all map replicas,
+picks the most voted results, processes them and stores its
+output in HDFS. In the end, either the client or a special task
+must make the vote of the outputs to pick the most voted. An
+even more simplistic solution would be to run a consensus,
+or Byzantine agreement between each set of map task repli-
+cas and reduce task replicas. This would involve even more
+replicas (typically 3f + 1) and more messages exchanged.
+
+
 
 
 
