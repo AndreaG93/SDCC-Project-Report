@@ -55,31 +55,14 @@ Then the goal of this paper is to describe an \textit{Arbitrary Fault-Tolerant L
 
 \section{Arbitrary Fault-Tolerant Locality-Aware MapReduce}
 
+\subsection{Arbitrary fault tolerance}
+
 As known academic literature describes many type of failure, like \textit{crash failures}; however the most serious are known as \textit{arbitrary failures} or \textit{Byzantine failures}, according to which a server may produce arbitrary responses at arbitrary times which cannot be detected as being incorrect. 
 
+Redundancy represents the key technique used to manage these kind of failure, according to which, 
 
 
-
-
-
-
-
-
-
-Then the goal of this paper is to describe an Arbitrary Fault-Tolerant (AFT) MapReduce runtime system. 
-
-
-
-
-
-
-
-
-
-
-In this paper we present an Arbitrary Fault-Tolerant (AFT) MapReduce runtime system. 
-
-The key technique used to manage faults is, as , to use redundancy.The key approach to tolerating a faulty process is to organize several identical processes into a group. 
+The key approach to tolerating a faulty process is to organize several identical processes into a group. 
 
 
  Our BFT
@@ -112,12 +95,35 @@ so the client or voter can just believe the majority.
 
 
 
-\section{Template Overview}
+\section{System Architecture}
+
+In order to properly describe our MapReduce algorithm, including our arbitrary failures management system and how we exploit data locality in order to improve performance, it is necessary to describe our system architecture. 
+
+\subsection{Assumptions}
+
+Our system is composed by a set of distributed processes, every of which run on different hosts in a same data-center; from implementation point of view, every process run on his own Amazon EC2 server hosted in a same region.
+
+We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use timeouts to conclude that a process has crashed but, occasionally, such conclusion is false. However, all processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by the use of TCP connections. 
+
+Clients are always correct, because if they are not there is no point in worrying about the correctness of our system's output.
+
+Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
+
+\subsection{System's processes}
+
+Our system is made up of three type of process:
+
+\begin{description}
+\item[Client Process] Which requests the execution of jobs composed by map and reduce tasks among
+
+\item[Primary Process] Its duty it to satisfy clients requests coordinating worker processes activities. 
+
+\item[Worker Process] A Worker Process executes map and reduce task scheduleted by current Leader Primary Process.
+\end{description}
 
 
-\subsection{System Architecture}
 
-Our system is composed by a set of distributed processes:
+ by a set of distributed processes:
 
 \begin{description}
 \item[Client Process] the clients that request the execution of jobs composed by map and reduce tasks
