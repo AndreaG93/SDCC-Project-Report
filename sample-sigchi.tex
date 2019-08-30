@@ -45,17 +45,19 @@ Although the execution of a job with our algorithms uses more resources respect 
 
 \section{Introduction}
 
-Nowadays many famous distributed applications use thousands of computers and hundreds of other devices like network switches, routers and power units in order to provide their services to an increasing number of users in every part of the world. 
+Various data-intensive tasks, like seismic simulation, natural language processing, machine learning, astronomical data parsing, web data mining and many other, require a processing power that exceeds the capabilities of individual computers; this fact imposes the use of \textit{distributed computing}. Nowadays many famous distributed applications use thousands of computers and hundreds of other devices like network switches, routers and power units in order to provide their services to an increasing number of users in every part of the world, moving consequently an huge amount of data between computers and server. \textit{MapReduce}, a framework developed by Google, represents a solution for processing large data sets in a distributed environment. 
 
-Moreover there are various data-intensive task, like seismic simulation, natural language processing, machine learning, astronomical data parsing and web data mining, which require a processing power exceeds the capabilities of individual computers imposing the use of distributed computing. MapReduce, a framework developed by Google, represents a solution for processing large data sets. 
+However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future owing to the increasing number of computer and server connected to internet. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{Abril07}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent. \cite{Abril07} Moreover moving large amount of data repeatedly to distant nodes is becoming the bottleneck owing to an increased network traffic causing performance degradation.
 
-As many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future owing to the increasing number of computer and server connected to internet. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{Abril07}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent \cite{Abril07}
+These are the reasons why to construct a distributed system in such a way it can provide its services even in the presence of failures is become so critical; consequently, to provide a \textit{fault tolerant} cloud application represents an important goal in distributed-systems design. Moreover exploiting data locality, in order to mitigate network traffic and delay, becomes very important to improve performance.
 
-This is the reason why to construct a distributed system in such a way it can provide its services even in the presence of failures is become so critical for economic reasons; consequently, to provide a \textit{fault tolerant} cloud application represents an important goal in distributed-systems design.
+Then the goal of this paper is to describe an \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) \textit{MapReduce runtime system} capable to mitigate problems described above. 
+
+\section{Arbitrary Fault-Tolerant Locality-Aware MapReduce}
 
 As known academic literature describes many type of failure, like \textit{crash failures}; however the most serious are known as \textit{arbitrary failures} or \textit{Byzantine failures}, according to which a server may produce arbitrary responses at arbitrary times which cannot be detected as being incorrect. 
 
-Often mostly all data-intensive tasks require large data sets moving between computers in order to operate correctly. Moving data repeatedly to distant nodes is becoming the bottleneck [23]. fdsfdsfsdfdsfsd
+
 
 
 
