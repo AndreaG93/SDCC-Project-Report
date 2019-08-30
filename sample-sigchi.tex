@@ -116,10 +116,58 @@ Our system is made up of three type of process:
 \begin{description}
 \item[Client Process] Which requests the execution of jobs composed by map and reduce tasks among
 
-\item[Primary Process] Its duty it to satisfy clients requests coordinating worker processes activities. 
+\item[Primary Process] Similarly to \textit{JobTracker} process used in Apache Hadoop, its duty is to satisfy clients requests, scheduling \textit{map} and \textit{reduce} tasks, coordinating at the same time \textit{worker processes} activities. 
 
-\item[Worker Process] A Worker Process executes map and reduce task scheduleted by current Leader Primary Process.
+\item[Worker Process] It executes map or reduce task scheduled by current primary process.
 \end{description}
+
+Unlike Hadoop, according to which the \textit{JobTracker} process is assumed always correct, the host where primary process is running may fail, for example by crashing or by losing network connectivity; in other words, primary process's host represents a \textit{single point of failure}. Therefore, to ensure an high system availability, we have adopted an architecture based on multiple primary process copies run on different host, one of which, using a leader election algorithm, is elected as system coordinator. When current leader fails, a backup copy is promoted to become the new coordinator. From an implementation point of view, we used services offered by Apache ZooKeeper to implement our leader election mechanism.
+
+
+In order to achieve its duty, current primary process leader stores various information about requests received by clients, like their status and other informations about worker processes activities. Is very important to specify that such data are stored in memory, therefore they are permanently lost after a crash; this design makes our system  easier to implement and helps to reducing overhead due to the disk I/O activities. However recover lost in-memory leader state after a failure is required in order to satisfy clients requests. During each step of MapReduce framework, current primary leader process save current client requests status using an external fault tolerant services, in our case Apache zookeeper. When a primary process backup becomes leader, it retrieves all data from Apache ZooKeeper, restarting all pending client request from last saved state.
+
+Current leader primary process can interact with worker processes using a push-based approach in order to schedule map or reduce tasks.
+
+\subsection{The algorithm}
+
+To make our system arbitrary fault-tolerant we have followed the approach according to which each task is executed more than once by different processes running on different host. This design requires to organize several identical processes into a group through which became possible to mask one or more faulty processes. 
+
+As known, MapReduce framework splits input file in several splits to each of which a map task is associated; in other words, if an input file is split, for instance, into $n$ elements, primary process has to schedule $n$ map tasks. In order to achieve arbitrary fault-tolerance, each map task has to be executed by a groups of identical process performing given task. According to this design, in order to manage $n$ map tasks, $n$ different groups of processes are needed; these group are called Worker Groups. A worker group is a set of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. This is the reason according to which this design is more expensive than using the original MapReduce runtime or Hadoop.
+
+To be more precise, suppose to have $n$ worker groups and to want tolerate at most $k$ faulty processes for each group. To achieve arbitrary fault-tolerance, we can apply, for instance, a consensus algorithm like Paxos or Raft in order to reach consensus among all processes belonging to a given worker group. However that solution is too expensive because it requires $3f + 1$ replicas; moreover if we have, for instance, $n$ worker groups, we need at least $n(3k + 1)$ processes.
+
+This is the reason accoridng to which we have adopt an 
+An important issue with this design is how much replication is needed. As known, if processes exhibit arbitrary failures, continuing to run when faulty and sending out erroneous or random replies, a minimum of $2k+1$ processes are needed to achieve $k$-fault tolerance. In the worst case, the $k$ failing processes could accidentally generate the same reply. However, the remaining $k+1$ will also produce the same answer, so the primary process just believe the majority. Notice that, for instance, applying consensus algorithm to reach consensus among k group members may suffer from fail-arbitrary failures requires 3f + 1 replicas to tolerate at most f faulty replicas.
+
+ we have discarded this option considering it too expensive through which
+
+,
+
+In replicated-write protocols, an update is forwarded to several replicas at the same time. 
+
+
+  we have a group of 3k+1 processes. Our goal is to show that we can establish a solution in which k group members may suffer from fail-arbitrary failures, yet the remaining nonfaulty processes will still reach consensus
+
+
+All worker processes are running are logically split into several \textit{Groups}, that is sets of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. Although, for performance reasons, not always happen, when a task is sent to the group itself, all members of the group receive it.
+
+
+
+
+
+
+
+ Notice that, for instance, the state machine approach requires 3f + 1 replicas to tolerate at most f faulty replicas,
+
+
+. First,theJobTrackerstarts 2f +1 
+
+
+
+
+
+
+
 
 
 
@@ -133,6 +181,10 @@ Our system is made up of three type of process:
 \item[Backup Primary Process] It manages the execution of word-count jobs received from clients coordinating Worker Nodes 
 
 \item[Worker Process] A Worker Process executes map and reduce task scheduleted by current Leader Primary Process. In order to achieve fault tolerance, any Worker Process must be run indepently on different host. In our implementation, each process run on independent Amazon EC2 server
+
+The Mesos master stores information about the active tasks and registered frameworks in memory: it does not persist it to disk or attempt to ensure that this information is preserved after a master failover. This helps the Mesos master scale to large clusters with many tasks and frameworks. A downside of this design is that after a failure, more work is required to recover the lost in-memory master state.
+
+
 
 \item[Worker Group] All system's nodes in which worker process are running are logically split into several \textit{Groups}, that is sets of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. Although, for performance reasons, not always happen, when a task is sent to the group itself, all members of the group receive it.
 
@@ -161,12 +213,6 @@ as  a set of Task- Trackers that execute tasks
 \end{description}
 
 
-We assume that clients are always correct, because if they are not there is no point in worrying about the correctness of the job’s output.
-
-The host where current master process is running may fail, for example by crashing or by losing network connectivity. Therefore, to ensure system availability in such a way that it can keep on providing its services, multiple master process copies of run on different host, and that a backup copy is promoted to become the new leader when the previous leader fails.
-
-
-In order to decide when the current leader master process has failed and to elect a new leader, we have used a coordination service like Apache ZooKeeper. 
 
 
 
@@ -178,7 +224,6 @@ In order to decide when the current leader master process has failed and to elec
 
 
 
-The Mesos master stores information about the active tasks and registered frameworks in memory: it does not persist it to disk or attempt to ensure that this information is preserved after a master failover. This helps the Mesos master scale to large clusters with many tasks and frameworks. A downside of this design is that after a failure, more work is required to recover the lost in-memory master state.
 
 
 
@@ -187,24 +232,12 @@ The Mesos master stores information about the active tasks and registered framew
 
 
 
- Mesos consists of a master daemon that manages agent daemons running on each cluster node, and Mesos frameworks that run tasks on these agents.
 
 
-The Mesos master stores information about the active tasks and registered frameworks in memory: it does not persist it to disk or attempt to ensure that this information is preserved after a master failover. This helps the Mesos master scale to large clusters with many tasks and frameworks. A downside of this design is that after a failure, more work is required to recover the lost in-memory master state.
 
-System model. The system is composed by a set of dis-
-tributed processes: the clients that request the execution of
-jobs composed by map and reduce tasks, the JobTracker that
-manages the execution of a job as explained, a set of Task-
-Trackers that execute tasks, the NameNode that manages ac-
-cess to data stored in HDFS, and a set of DataNodes where
-HDFS stores file blocks. We say that a process is correct if
-it follows the algorithm, otherwise we say it is faulty. We
-also use these two words to denominate a task (map or re-
-duce) that, respectively, returns the result that corresponds to
-an execution in a correct TaskTracker (correct) or not (faulty).
-Processes run in servers in a datacenter.
 
+
+ 
 
 \subsection{The algorithm}
 
