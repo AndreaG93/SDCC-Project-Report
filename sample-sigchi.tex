@@ -128,6 +128,11 @@ In order to achieve its duty, current primary process leader stores various info
 
 Current leader primary process can interact with worker processes using a push-based approach in order to schedule map or reduce tasks.
 
+
+
+
+
+
 \subsection{The algorithm}
 
 To make our system arbitrary fault-tolerant we have followed the approach according to which each task is executed more than once by different processes running on different host. This design requires to organize several identical processes into a group through which became possible to mask one or more faulty processes. 
@@ -136,7 +141,7 @@ As known, MapReduce framework splits input file in several splits to each of whi
 
 To be more precise, suppose to have $n$ worker groups and to want tolerate at most $k$ faulty processes for each group. To achieve arbitrary fault-tolerance, we can apply, for instance, a consensus algorithm like Paxos or Raft in order to reach consensus among all processes belonging to a given worker group. However that solution is too expensive because it requires $3f + 1$ replicas; moreover if we have, for instance, $n$ worker groups, we need at least $n(3k + 1)$ processes.
 
-This is the reason accoridng to which we have adopt an 
+This is the reason according to which we have adopt an 
 An important issue with this design is how much replication is needed. As known, if processes exhibit arbitrary failures, continuing to run when faulty and sending out erroneous or random replies, a minimum of $2k+1$ processes are needed to achieve $k$-fault tolerance. In the worst case, the $k$ failing processes could accidentally generate the same reply. However, the remaining $k+1$ will also produce the same answer, so the primary process just believe the majority. Notice that, for instance, applying consensus algorithm to reach consensus among k group members may suffer from fail-arbitrary failures requires 3f + 1 replicas to tolerate at most f faulty replicas.
 
  we have discarded this option considering it too expensive through which
@@ -153,14 +158,51 @@ All worker processes are running are logically split into several \textit{Groups
 
 
 
+\subsection{Digest outputs} As explained above, in order to consider a task correct, tolerating at most $f$ faulty processes, we need $f + 1$ matching outputs have to be received. 
+
+To validate task's output, since outputs computed by worker processes can be very large, in order to avoid pointless additional network traffic, we have adopted an approach according to which primary process fetches and compares outputs \textit{digests} from all workers within a group; this design allows us to increase system's performance.
+
+\subsection{Crash failure detection} To manage and detect workers processes crash faults we have use some features of Apache Zookeeper. 
+
+As known, Apache ZooKeeper has the notion of \textit{ephemeral nodes}, that is special znodes which exists as long as the \textit{session} that created the znode is active. When session expiration occurs, Zookeeper cluster will delete all ephemeral nodes owned by that session and immediately notify all connected clients of the change.
+
+When any client establishes a session with a Zookeeper cluster, a time-out value is used by the cluster to determine when the client's session expires. Expirations usually happens when the cluster does not hear from the client within the specified session time-out period (i.e. no heartbeat).
+
+Notice that session is kept alive by requests sent by client, therefore is critical that client will send PING request to keep the session alive. This PING request not only allows the ZooKeeper server to know that the client is still active, but it also allows the client to verify that its connection to the ZooKeeper server is still active.
+
+Using this design, is very easy to keep check the status of worker processes.
+
+\subsection{Deferred execution} We believe that there is no point in always executing $2f + 1$ replicas for each task to usually obtain the same result. 
+
+To minimize both the number of copies of tasks executed and the overhead due to network traffic, saving also some energy, we have adopted a design called \textit{Deferred Execution}: according to that solution current primary starts only $f + 1$ replicas of the same task, checking if they all return the same result. If a time-out elapses, or some returned results do not match, more replicas (up to $f$) are started, until there are $f + 1$ matching replies. 
+
+Supposing that Byzantine faults are uncommon, this design reduce the overhead introduced by the basic scheme.
+
+\subsection{Data locality awareness}
+
+Since moving data repeatedly among nodes is bottleneck, to improve MapReduce performance, we have adopt a design aware of data locations and sizes in order to mitigate network traffic.
+
+Our solution is based on a basic principles which states that "\textit{moving computation towards data is cheaper than moving data towards computation}". When the map phase is fully done, all the network locations of the feeding nodes of every reducer will be known
+
+
+Moving data repeatedly to distant nodes is becoming the bottleneck [23]. In this paper we rethink reduce task scheduling in Hadoop and suggest making Hadoop’s reduce task scheduler aware of partitions’ network locations and sizes in order to mitigate network trafﬁc. 
+
+A key question is how to schedule reduce tasks at Task Trackers so as to diminish shufﬂed data and improve MapReduce performance. One of Hadoop’s basic principles is: ”moving computation towards data is cheaper than moving data towards computation”. Such a principle is employed by Hadoop when scheduling map tasks but bypassed when scheduling reduce tasks. MapReduce is aware of the network locations of splits (inputstomappers)andleveragessuchinformationtoschedule mappers nearby splits. In contrast, MapReduce is oblivious to the network locations of partitions (inputs to reducers) and does not schedule reducers nearby partitions. Thus, similar to map task scheduling, we suggest making MapReduce aware of partitions’ network locations in order to apply locality to reduce task scheduling
+
+
+
+As we will be able to explain later, this design allows us to exploit data locality to increase system performance; in fact, when 
 
 
 
 
- Notice that, for instance, the state machine approach requires 3f + 1 replicas to tolerate at most f faulty replicas,
 
 
-. First,theJobTrackerstarts 2f +1 
+
+
+
+
+
 
 
 
@@ -259,12 +301,7 @@ replicas (typically 3f + 1) and more messages exchanged.
 
 
 
-\subsection{Crash failure detection} Workers nodes crash faults are detected using ZooKeeper's coordination service. As known, ZooKeeper allows users to store persistently coordination data into several hierarchically grouped nodes, called \textit{znode}. However, ZooKeeper has the notion of \textit{ephemeral nodes} too; these special znodes exists as long as the session that created the znode is active, that is when the session ends the znode is deleted. A ZooKeeper client establishes a session with the ZooKeeper service
-
-
-At session expiration the cluster will delete any/all ephemeral nodes owned by that session and immediately notify any/all connected clients of the change 
-
-In this way, is very easy to keep check the status of worker nodes by current primary process. If any of worker node crash, ZooKeeper automatically delete znode associated to crashed server and notifies current leader.
+\subsection{Crash failure detection}
 
 \subsection{Deferred execution} As known, arbitrary faults are very hard to detect and manage 
 
@@ -287,15 +324,7 @@ In the best case, without Byzantine faults, only f + 1 replicas are started. If 
 
 
 
-\subsection{Digest outputs} $f + 1$ matching outputs of a given task (maps or reduces) have to be received to be considered correct. However, tasks output can have considerable size be large therefore to move data from workers to leader is useless. can increse uselessly network traffic, worsening performance.
 
-
-Digest outputs. f + 1 matching outputs of maps or reduces
-have to be received to be considered correct. These outputs
-tend to be large, so it is useful to fetch one output from some
-task replica and compare just digests (hashes). This way, it is
-still possible to validate the output without generating much
-additional network traffic.
 
 
 
