@@ -25,7 +25,7 @@
 \renewcommand{\shortauthors}{Andrea Graziani (0273395)}
 
 \begin{abstract}
-\textit{MapReduce} is a programming paradigm that enables massive scalability across hundreds or thousands of servers allowing to process very large data-set \cite{IBMWhatIsMapReduce}.
+\textit{MapReduce} is a programming paradigm developed by Google that enables massive scalability across hundreds or thousands of servers allowing to process very large data-set \cite{IBMWhatIsMapReduce}.
 
 Both academic literature and daily experience shows that \textit{arbitrary faults} frequently occur corrupting our results \cite{BFLMapReduce}. Moreover, ignore data-set locality can lead to performance degradation and a pointless bigger network traffic \cite{LARTS}.
 
@@ -39,69 +39,49 @@ Although job's execution using our system requires more resources respect to oth
 
 \section{Introduction}
 
-Various data-intensive tasks, like seismic simulation, natural language processing, machine learning, astronomical data parsing, web data mining and many other, require a processing power that exceeds the capabilities of individual computers; this fact imposes the use of \textit{distributed computing}. Nowadays many famous distributed applications use thousands of computers and hundreds of other devices like network switches, routers and power units in order to provide their services to an increasing number of users in every part of the world, moving consequently an huge amount of data between computers and server. \textit{MapReduce}, a framework developed by Google, represents a solution for processing large data sets in a distributed environment. 
+Various data-intensive tasks, like seismic simulation, natural language processing, machine learning, astronomical data parsing, web data mining and many other, require a processing power that exceeds the capabilities of individual computers imposing the use of a \textit{distributed computing} \cite{LARTS}.
 
-However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future owing to the increasing number of computer and server connected to internet. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures \cite{PetaScaleFailure}. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{DRAMError}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent. \cite{MicrosoftStudyFailure} Moreover moving large amount of data repeatedly to distant nodes is becoming the bottleneck owing to an increased network traffic causing performance degradation.
+Nowadays many famous distributed applications use MapReduce framework as solution for processing large data sets in a distributed environment. In order to properly provide services to an increasing number of users worldwide, is necessary to connect together thousands of computers and hundreds of other devices like network switches, routers and power units, moving consequently an huge amount of data between computers. 
 
-These are the reasons why to construct a distributed system in such a way it can provide its services even in the presence of failures is become so critical; consequently, to provide a \textit{fault tolerant} cloud application represents an important goal in distributed-systems design. Moreover exploiting data locality, in order to mitigate network traffic and delay, becomes very important to improve performance.
+However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future due to increasing number of computers connected to internet \citep{BFLMapReduce}. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures \cite{PetaScaleFailure}. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{DRAMError}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent. \cite{MicrosoftStudyFailure} Moreover moving large amount of data repeatedly to distant nodes is becoming the bottleneck owing to an increased network traffic causing performance degradation.
 
-Then the goal of this paper is to describe an \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) \textit{MapReduce runtime system} capable to mitigate problems described above. 
+Therefore to construct a distributed system capable to provide its services even in the presence of failures is become so critical; consequently, to provide a \textit{fault tolerant} cloud application represents an important goal in distributed-systems design. 
 
-\section{Arbitrary Fault-Tolerant Locality-Aware MapReduce}
+Moreover, due to very large data-set involved during data-intensive tasks, exploiting data locality, in order to mitigate network traffic and delay, becomes very important to improve performance.
 
-\subsection{Arbitrary fault tolerance}
+In these paper we will describe our \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) MapReduce system capable to resolve all issues described above. We implemented our AFTLA MapReduce system from scratch using Go programming language, adopting Apache ZooKeeper\textsuperscript{TM} to provide service for maintaining configuration information and system coordination \footnote{See \url{https://zookeeper.apache.org}}. All libraries used in our implementation are fully described in table \ref{tab:libraries}.
 
-As known academic literature describes many type of failure, like \textit{crash failures}; however the most serious are known as \textit{arbitrary failures} or \textit{Byzantine failures}, according to which a server may produce arbitrary responses at arbitrary times which cannot be detected as being incorrect. 
-
-Redundancy represents the key technique used to manage these kind of failure, according to which, 
-
-
-The key approach to tolerating a faulty process is to organize several identical processes into a group. 
-
-
- Our BFT
-MapReduce follows the approach of executing each task more
-than once, similarly to the works mentioned above. The chal-
-
-
-
-Process groups are part of the solution for building fault-tolerant systems.
-In particular, having a group of identical processes allows us to mask one
-or more faulty processes in that group. In other words, we can replicate
-processes and organize them into a group to replace a single (vulnerable)
-process with a (fault tolerant) group. 
-
-An important issue with using process groups to tolerate faults is how
-much replication is needed. To simplify our discussion, let us consider
-only replicated-write systems. A system is said to be k-fault tolerant if it
-can survive faults in k components and still meet its specifications. If the
-components, say processes, fail silently, then having k + 1 of them is enough
-to provide k-fault tolerance. If k of them simply stop, then the answer from
-the other one can be used.
-
-On the other hand, if processes exhibit arbitrary failures, continuing to
-run when faulty and sending out erroneous or random replies, a minimum
-of 2k + 1 processes are needed to achieve k-fault tolerance. In the worst case,
-the k failing processes could accidentally (or even intentionally) generate the
-same reply. However, the remaining k + 1 will also produce the same answer,
-so the client or voter can just believe the majority.
-
-
-
+\begin{table*}
+  \caption{Libraries used in our implementation}
+  \label{tab:libraries}
+  \begin{tabular}{l|l|l}
+    \toprule
+    Name & Description & Link \\
+    \midrule
+    \texttt{go-zookeeper/go} & Native Go Zookeeper Client Library & \url{https://github.com/samuel/go-zookeeper} \\
+    \texttt{logrus} & A structured logger for Go & \url{https://github.com/Sirupsen/logrus} \\
+    \texttt{aws-sdk-go} & AWS SDK for the Go programming language. & \url{https://github.com/aws/aws-sdk-go} \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
 
 \section{System Architecture}
 
-In order to properly describe our MapReduce algorithm, including our arbitrary failures management system and how we exploit data locality in order to improve performance, it is necessary to describe our system architecture. 
+In order to properly describe how our algorithm can tolerate arbitrary faults and to exploit data locality, it is necessary to describe its architecture. 
 
 \subsection{Assumptions}
 
-Our system is composed by a set of distributed processes, every of which run on different hosts in a same data-center; from implementation point of view, every process run on his own Amazon EC2 server hosted in a same region.
+Let's start our description making some very important assumptions.
 
-We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use timeouts to conclude that a process has crashed but, occasionally, such conclusion is false. However, all processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by the use of TCP connections. 
+Our system is composed by a \textit{set of distributed processes}, every of which run on different hosts in a same data-center; from an implementation point of view, every process run on his own Amazon EC2 server hosted in a same region (\texttt{us-east-1}). All processes interact with each other using RPC
 
-Clients are always correct, because if they are not there is no point in worrying about the correctness of our system's output.
+We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use timeouts to state that a process has crashed although, occasionally, such conclusion is false \cite{SDCC}.
 
-finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
+All processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by TCP connections. 
+
+Clients are \textit{always correct}, because if they are not there is no point in worrying about the correctness of our system's output.
+
+Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
 
 \subsection{System's processes}
 
@@ -313,6 +293,45 @@ By default, current leader primary process starts only $f + 1$ replicas of the s
 
 
 In the best case, without Byzantine faults, only f + 1 replicas are started. If arbitrary faults are uncommon, we have a < f + 1 replica started reducing the overhead 
+
+\section{Arbitrary Fault-Tolerant Locality-Aware MapReduce}
+
+\subsection{Arbitrary fault tolerance}
+
+As known academic literature describes many type of failure, like \textit{crash failures}; however the most serious are known as \textit{arbitrary failures} or \textit{Byzantine failures}, according to which a server may produce arbitrary responses at arbitrary times which cannot be detected as being incorrect. 
+
+Redundancy represents the key technique used to manage these kind of failure, according to which, 
+
+
+The key approach to tolerating a faulty process is to organize several identical processes into a group. 
+
+
+ Our BFT
+MapReduce follows the approach of executing each task more
+than once, similarly to the works mentioned above. The chal-
+
+
+
+Process groups are part of the solution for building fault-tolerant systems.
+In particular, having a group of identical processes allows us to mask one
+or more faulty processes in that group. In other words, we can replicate
+processes and organize them into a group to replace a single (vulnerable)
+process with a (fault tolerant) group. 
+
+An important issue with using process groups to tolerate faults is how
+much replication is needed. To simplify our discussion, let us consider
+only replicated-write systems. A system is said to be k-fault tolerant if it
+can survive faults in k components and still meet its specifications. If the
+components, say processes, fail silently, then having k + 1 of them is enough
+to provide k-fault tolerance. If k of them simply stop, then the answer from
+the other one can be used.
+
+On the other hand, if processes exhibit arbitrary failures, continuing to
+run when faulty and sending out erroneous or random replies, a minimum
+of 2k + 1 processes are needed to achieve k-fault tolerance. In the worst case,
+the k failing processes could accidentally (or even intentionally) generate the
+same reply. However, the remaining k + 1 will also produce the same answer,
+so the client or voter can just believe the majority.
 
 
 \bibliographystyle{ACM-Reference-Format}
