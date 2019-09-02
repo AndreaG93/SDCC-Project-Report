@@ -25,13 +25,13 @@
 \renewcommand{\shortauthors}{Andrea Graziani (0273395)}
 
 \begin{abstract}
-\textit{MapReduce} is a programming paradigm that enables massive scalability across hundreds or thousands of servers allowing to process very large data set \cite{IBMWhatIsMapReduce}
+\textit{MapReduce} is a programming paradigm that enables massive scalability across hundreds or thousands of servers allowing to process very large data-set \cite{IBMWhatIsMapReduce}.
 
-However, evidence in the literature shows that arbitrary faults do occur and can probably corrupt the results of MapReduce jobs\cite{MicrosoftStudyFailure}; Moreover, ignoring data locality during task scheduling can lead to performance degradation and a pointless bigger network traffic.
+Both academic literature and daily experience shows that \textit{arbitrary faults} frequently occur corrupting our results \cite{BFLMapReduce}. Moreover, ignore data-set locality can lead to performance degradation and a pointless bigger network traffic \cite{LARTS}.
 
-We present an original MapReduce algorithm capable to tolerate arbitrary or Byzantine faults experienced by worker nodes and to resolve master node single point of failure problem; moreover, recognizing input data network locations and sizes, our algorithm performs a locality aware task scheduling, improving performance and diminishing network traffic.
+In this paper we present an original MapReduce runtime system capable both to tolerate arbitrary faults and to recognize input data network locations and sizes in order to perform a \textit{locality-aware task scheduling}, improving performance and diminishing network traffic.
 
-Although the execution of a job with our algorithms uses more resources respect to other implementations, like Hadoop, we believe that this cost is acceptable for critical applications that require that level of fault tolerance.
+Although job's execution using our system requires more resources respect to other implementations, we believe that this cost is acceptable for critical applications that require an higher level of fault tolerance.
 \end{abstract}
 
 \keywords{MapReduce, Fault tolerance, Arbitrary failure, Data locality}
@@ -41,7 +41,7 @@ Although the execution of a job with our algorithms uses more resources respect 
 
 Various data-intensive tasks, like seismic simulation, natural language processing, machine learning, astronomical data parsing, web data mining and many other, require a processing power that exceeds the capabilities of individual computers; this fact imposes the use of \textit{distributed computing}. Nowadays many famous distributed applications use thousands of computers and hundreds of other devices like network switches, routers and power units in order to provide their services to an increasing number of users in every part of the world, moving consequently an huge amount of data between computers and server. \textit{MapReduce}, a framework developed by Google, represents a solution for processing large data sets in a distributed environment. 
 
-However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future owing to the increasing number of computer and server connected to internet. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{Abril07}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent. \cite{Abril07} Moreover moving large amount of data repeatedly to distant nodes is becoming the bottleneck owing to an increased network traffic causing performance degradation.
+However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future owing to the increasing number of computer and server connected to internet. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures \cite{PetaScaleFailure}. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{DRAMError}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent. \cite{MicrosoftStudyFailure} Moreover moving large amount of data repeatedly to distant nodes is becoming the bottleneck owing to an increased network traffic causing performance degradation.
 
 These are the reasons why to construct a distributed system in such a way it can provide its services even in the presence of failures is become so critical; consequently, to provide a \textit{fault tolerant} cloud application represents an important goal in distributed-systems design. Moreover exploiting data locality, in order to mitigate network traffic and delay, becomes very important to improve performance.
 
@@ -101,7 +101,7 @@ We assume that our system runs \textit{asynchronously}, that is no assumptions a
 
 Clients are always correct, because if they are not there is no point in worrying about the correctness of our system's output.
 
-Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
+finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
 
 \subsection{System's processes}
 
