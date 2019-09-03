@@ -82,7 +82,13 @@ Clients are \textit{always correct}, because if they are not there is no point i
 
 In this paper, we take for granted reader's knowledge of the MapReduce framework and Hadoop implementation. framework.
 
-\section{System's processes}
+\section{System's model}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{Architecture}
+  \caption{System Architecture}
+\end{figure}
 
 Three kind of process are used in our system:
 
@@ -125,7 +131,37 @@ In our design each map or reduce task scheduled by current LPP are assigned to i
 
 This design is scalable in several ways: if the number of users or data input size grows, it should be possible to extend the system, at reasonable cost, adding more WPGs. If we want an higher level of arbitrary fault-tolerance, we should add more WP to each WPG, increasing the number PP backups too.
 
-\section{Architecture }
+\section{The algorithm}
+
+Given the system model described previously, a solution to tolerate at most $f$ arbitrary faults during each task would be the following: current LPP assigns a given map/reduce task to a WPG contacting its $2f + 1$ WPs; then, after retrieving the outputs from replicas, picks the most voted results which is expected correct if no more than $f$ arbitrary faults occur. 
+
+This simplistic solution is very expensive because it replicates everything $2f + 1$ times: task execution, communication of map task outputs and so on. We use a set of techniques to avoid these costs and do things efficiently:
+
+\subsection{Digest outputs} As explained above, in order to consider a map/reduce task correct, tolerating at most $f$ faulty processes, $f + 1$ matching outputs, coming from at least $2f + 1$ WPs belonging to a given WPG,  have to be received. 
+
+To validate task's output, since outputs computed by worker processes can be very large, in order to avoid pointless additional network traffic, we have adopted an approach according to which LPP fetches and compares \textit{digests}, a bit string of a fixed size obtained using a hash function. The main advantage of this technique is that, digest size are many times smaller than task's data output, allowing us to reduce network traffic among servers, increasing system's performance.
+
+\subsection{Deferred execution} We believe that there is no point in always executing $2f + 1$ replicas for each task to usually obtain the same result. 
+
+To minimize both the number of copies of tasks executed and the overhead due to network traffic we have adopted a design called \textit{deferred execution}: according to that solution current LPP starts only $f + 1$ replicas of the same task, checking if they all return the same result. If a time-out elapses, or some returned results do not match, more replicas (up to $f$) are started, until there are $f + 1$ matching replies. 
+
+We believe that this this design is also energy-saver and cost-effective since, supposing that arbitrary faults are uncommon, fewer WP are involved into computations respect to basic scheme and, in principle, is possible to start and use a fewer number of servers using auto-scaling techniques (at cost of some latency).
+
+\subsection{Data locality awareness}
+
+Since in order to achieve fault tolerance we have replicate all task $2f + 1$ times, data transfers among servers are replicated too, generating an huge amount of network traffic. Evidently, when large data set are involved, move data repeatedly among server became a bottleneck.
+
+Therefore we have adopted a design capable to reduce 
+
+
+Since moving data repeatedly among server is bottleneck, especially when large data set are involved, in order to improve system performance, we have adopt a design aware of data locations and sizes in order to mitigate network traffic avoiding pointless data moving.
+
+Our solution is based on a basic principles which states that "\textit{moving computation towards data is cheaper than moving data towards computation}". When the map phase is fully done, all the network locations of the feeding nodes of every reducer will be known
+
+
+Moving data repeatedly to distant nodes is becoming the bottleneck [23]. In this paper we rethink reduce task scheduling in Hadoop and suggest making Hadoop’s reduce task scheduler aware of partitions’ network locations and sizes in order to mitigate network traffic. 
+
+A key question is how to schedule reduce tasks at Task Trackers so as to diminish shuffled data and improve MapReduce performance. One of Hadoop’s basic principles is: moving computation towards data is cheaper than moving data towards computation. Such a principle is employed by Hadoop when scheduling map tasks but bypassed when scheduling reduce tasks. MapReduce is aware of the network locations of splits (inputstomappers)andleveragessuchinformationtoschedule mappers nearby splits. In contrast, MapReduce is oblivious to the network locations of partitions (inputs to reducers) and does not schedule reducers nearby partitions. Thus, similar to map task scheduling, we suggest making MapReduce aware of partitions network locations in order to apply locality to reduce task scheduling
 
 
 
@@ -133,10 +169,6 @@ This design is scalable in several ways: if the number of users or data input si
 
 
 
-
-\subsection{Digest outputs} As explained above, in order to consider a task correct, tolerating at most $f$ faulty processes, we need $f + 1$ matching outputs have to be received. 
-
-To validate task's output, since outputs computed by worker processes can be very large, in order to avoid pointless additional network traffic, we have adopted an approach according to which primary process fetches and compares outputs \textit{digests} from all workers within a group; this design allows us to increase system's performance.
 
 \subsection{Crash failure detection} To manage and detect workers processes crash faults we have use some features of Apache Zookeeper. 
 
@@ -148,196 +180,18 @@ Notice that session is kept alive by requests sent by client, therefore is criti
 
 Using this design, is very easy to keep check the status of worker processes.
 
-\subsection{Deferred execution} We believe that there is no point in always executing $2f + 1$ replicas for each task to usually obtain the same result. 
 
-To minimize both the number of copies of tasks executed and the overhead due to network traffic, saving also some energy, we have adopted a design called \textit{Deferred Execution}: according to that solution current primary starts only $f + 1$ replicas of the same task, checking if they all return the same result. If a time-out elapses, or some returned results do not match, more replicas (up to $f$) are started, until there are $f + 1$ matching replies. 
 
-Supposing that Byzantine faults are uncommon, this design reduce the overhead introduced by the basic scheme.
 
-\subsection{Data locality awareness}
 
-Since moving data repeatedly among nodes is bottleneck, to improve MapReduce performance, we have adopt a design aware of data locations and sizes in order to mitigate network traffic.
 
-Our solution is based on a basic principles which states that "\textit{moving computation towards data is cheaper than moving data towards computation}". When the map phase is fully done, all the network locations of the feeding nodes of every reducer will be known
 
 
-Moving data repeatedly to distant nodes is becoming the bottleneck [23]. In this paper we rethink reduce task scheduling in Hadoop and suggest making Hadoop’s reduce task scheduler aware of partitions’ network locations and sizes in order to mitigate network traffic. 
 
-A key question is how to schedule reduce tasks at Task Trackers so as to diminish shuffled data and improve MapReduce performance. One of Hadoop’s basic principles is: moving computation towards data is cheaper than moving data towards computation. Such a principle is employed by Hadoop when scheduling map tasks but bypassed when scheduling reduce tasks. MapReduce is aware of the network locations of splits (inputstomappers)andleveragessuchinformationtoschedule mappers nearby splits. In contrast, MapReduce is oblivious to the network locations of partitions (inputs to reducers) and does not schedule reducers nearby partitions. Thus, similar to map task scheduling, we suggest making MapReduce aware of partitions network locations in order to apply locality to reduce task scheduling
-
-
-
-As we will be able to explain later, this design allows us to exploit data locality to increase system performance; in fact, when 
-
-
-From an implementation point of view, we used services offered by Apache ZooKeeper to implement our leader election mechanism.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- by a set of distributed processes:
-
-\begin{description}
-\item[Client Process] the clients that request the execution of jobs composed by map and reduce tasks
-
-\item[Leader Primary Process] It manages the execution of word-count jobs received from clients coordinating Worker Nodes 
-
-\item[Backup Primary Process] It manages the execution of word-count jobs received from clients coordinating Worker Nodes 
-
-\item[Worker Process] A Worker Process executes map and reduce task scheduleted by current Leader Primary Process. In order to achieve fault tolerance, any Worker Process must be run indepently on different host. In our implementation, each process run on independent Amazon EC2 server
-
-The Mesos master stores information about the active tasks and registered frameworks in memory: it does not persist it to disk or attempt to ensure that this information is preserved after a master failover. This helps the Mesos master scale to large clusters with many tasks and frameworks. A downside of this design is that after a failure, more work is required to recover the lost in-memory master state.
-
-
-
-\item[Worker Group] All system's nodes in which worker process are running are logically split into several \textit{Groups}, that is sets of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. Although, for performance reasons, not always happen, when a task is sent to the group itself, all members of the group receive it.
-
-
-
-The key property that all groups have is that when a
-message is sent to the group itself, all members of the group receive it.
-
-
- primary coordinates all write
-operations
-
-
- In other words, we can replicate processes and organize them into a group to replace a single (vulnerable) process with a (fault tolerant) group.
-
-
-
- When a task is  for work is generated, either
-by an external client or by one of the workers, it is sent to the coordinator.
-
-
-
-
-
-as  a set of Task- Trackers that execute tasks
-\end{description}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-\subsection{The algorithm}
-
-In order to achieve 
-A simplistic solution to make MapReduce
-Byzantine fault-tolerant given the system model would be the
-following. First, the JobTracker starts 2f + 1 replicas of each
-map task in different servers and TaskTrackers. Second, the
-JobTracker starts also 2f + 1 replicas of each reduce task.
-Each reduce task fetches the output from all map replicas,
-picks the most voted results, processes them and stores its
-output in HDFS. In the end, either the client or a special task
-must make the vote of the outputs to pick the most voted. An
-even more simplistic solution would be to run a consensus,
-or Byzantine agreement between each set of map task repli-
-cas and reduce task replicas. This would involve even more
-replicas (typically 3f + 1) and more messages exchanged.
-
-
-
-
-\subsection{Crash failure detection}
-
-\subsection{Deferred execution} As known, arbitrary faults are very hard to detect and manage 
-
-
-
-Deferred execution. Crash faults are detected by the previ-
-ously existing Hadoop mechanisms, and arbitrary faults are
-uncommon, so there is no point in always executing $2f + 1$ replicas to usually obtain the same result.
-
-
-
-
-By default, current leader primary process starts only $f + 1$ replicas of the same task, then wait results checking if they all return the same result. If a timeout elapses, or some returned results do not match, more replicas (up to $f$) are started, until there are $f + 1$ matching replies.
-
-
-
-In the best case, without Byzantine faults, only f + 1 replicas are started. If arbitrary faults are uncommon, we have a < f + 1 replica started reducing the overhead 
-
-\section{Arbitrary Fault-Tolerant Locality-Aware MapReduce}
-
-\subsection{Arbitrary fault tolerance}
-
-As known academic literature describes many type of failure, like \textit{crash failures}; however the most serious are known as \textit{arbitrary failures} or \textit{Byzantine failures}, according to which a server may produce arbitrary responses at arbitrary times which cannot be detected as being incorrect. 
-
-Redundancy represents the key technique used to manage these kind of failure, according to which, 
-
-
-The key approach to tolerating a faulty process is to organize several identical processes into a group. 
-
-
- Our BFT
-MapReduce follows the approach of executing each task more
-than once, similarly to the works mentioned above. The chal-
-
-
-
-Process groups are part of the solution for building fault-tolerant systems.
-In particular, having a group of identical processes allows us to mask one
-or more faulty processes in that group. In other words, we can replicate
-processes and organize them into a group to replace a single (vulnerable)
-process with a (fault tolerant) group. 
-
-An important issue with using process groups to tolerate faults is how
-much replication is needed. To simplify our discussion, let us consider
-only replicated-write systems. A system is said to be k-fault tolerant if it
-can survive faults in k components and still meet its specifications. If the
-components, say processes, fail silently, then having k + 1 of them is enough
-to provide k-fault tolerance. If k of them simply stop, then the answer from
-the other one can be used.
-
-On the other hand, if processes exhibit arbitrary failures, continuing to
-run when faulty and sending out erroneous or random replies, a minimum
-of 2k + 1 processes are needed to achieve k-fault tolerance. In the worst case,
-the k failing processes could accidentally (or even intentionally) generate the
-same reply. However, the remaining k + 1 will also produce the same answer,
-so the client or voter can just believe the majority.
 
 
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{sample-base}
+\bibliography{Bibliography}
 
 \appendix
 
