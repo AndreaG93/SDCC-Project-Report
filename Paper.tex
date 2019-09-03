@@ -151,19 +151,13 @@ We believe that this this design is also energy-saver and cost-effective since, 
 
 Since in order to achieve fault tolerance we have replicate all task $2f + 1$ times, data transfers among servers are replicated too, generating an huge amount of network traffic. Evidently, when large data set are involved, move data repeatedly among server became a bottleneck.
 
-Therefore we have adopted a design capable to reduce 
+Therefore we have adopted a design aware of data locations and sizes capable to reduce the overall amount of transferred data; that solution is based on a basic principles which states that "\textit{moving computation towards data is cheaper than moving data towards computation}"; in other words  "\textit{moving computation towards data is cheaper than moving data towards computation}".
 
+To be more precise, when a WP complete a map task, it send as output to LPP two very important information: a string containing data output digest and a value representing output data size. According to Hadoop terminology, map task output are called \textit{partition} and, contrary to splits, they are of variable sizes: so why not just shuffle smaller partitions instead big one? 
 
-Since moving data repeatedly among server is bottleneck, especially when large data set are involved, in order to improve system performance, we have adopt a design aware of data locations and sizes in order to mitigate network traffic avoiding pointless data moving.
+Assume for simplicity that no faults occurs and to have only two WPGs $\lbrace g_1, g_2 \rbrace$. Let $P_{i:g_i}$ the partition owned by WPG $g_i$ which contains all key-value pairs which must be submitted to reduce task $R_i$. The problem is how to perform a locality-aware reduce task scheduling; in other word, which WPG $g_i$ have to run reduce task $R_i$ reducing shuffled data?
 
-Our solution is based on a basic principles which states that "\textit{moving computation towards data is cheaper than moving data towards computation}". When the map phase is fully done, all the network locations of the feeding nodes of every reducer will be known
-
-
-Moving data repeatedly to distant nodes is becoming the bottleneck [23]. In this paper we rethink reduce task scheduling in Hadoop and suggest making Hadoop’s reduce task scheduler aware of partitions’ network locations and sizes in order to mitigate network traffic. 
-
-A key question is how to schedule reduce tasks at Task Trackers so as to diminish shuffled data and improve MapReduce performance. One of Hadoop’s basic principles is: moving computation towards data is cheaper than moving data towards computation. Such a principle is employed by Hadoop when scheduling map tasks but bypassed when scheduling reduce tasks. MapReduce is aware of the network locations of splits (inputstomappers)andleveragessuchinformationtoschedule mappers nearby splits. In contrast, MapReduce is oblivious to the network locations of partitions (inputs to reducers) and does not schedule reducers nearby partitions. Thus, similar to map task scheduling, we suggest making MapReduce aware of partitions network locations in order to apply locality to reduce task scheduling
-
-
+Suppose that $P_{1:g_1}$, $P_{2:g_1}$, $P_{1:g_2}$ and $P_{2:g_2}$ have a size of 300 MB, 150 MB, 150 MB and 300 MB respectively. Clearly, scheduling $R_1$ at $g_1$ and $R_2$ at $g_2$ reduce the amount of transferred data among WPGs by 50\%. Obliviously using this approach is possible to perform a locality-aware shuffle task capable to reduce network traffic, applying locality to reduce task scheduling.  
 
 
 
