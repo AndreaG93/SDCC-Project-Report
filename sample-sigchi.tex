@@ -109,40 +109,28 @@ Is very important to specify that LPP status is stored in memory, therefore they
 
 Therefore we have adopt a design according to which LPP make a sort of backup, or snapshot, of its current state regularly. To make our implementation easier, in our prototype, considering that LPP state contains a very small amount of data, LPP stores its state in a Zookeeper cluster after some events, like a map task termination. In case of crash failure of current LPP, when a primary process backup becomes leader, it retrieves all data from Apache ZooKeeper cluster, recovering last saved state.
 
-\subsection{Worker Process}
+\subsection{Worker Process and Groups}
+
+To make WP arbitrary fault-tolerant we have adopt a design according to which each task (map, reduce, etc.) is executed more than once by different processes running on different host. This approach requires to organize all our WPs into several \textit{groups} through which became possible to mask one or more faulty processes of a given group. 
+
+Before explaining how we manage WP faults, we must explain what is a Worker Processes Group (WPG). A WPG is a set of identical worker processes, each of which execute, relatively to a given job, \textit{the same commands using the same input data in the same order}; therefore we expected that all WPs belonging to a same group would produce the same output when no arbitrary fault occurs. All commands and data are sent by LPP.
+
+Suppose to want tolerate at most $f$ arbitrary failures of all WPs belonging to a given group. 
+
+To achieve that level of fault-tolerance, we can apply to reach, for instance, \textit{byzantine agreement} among all processes belonging to group. However we believe that solution is too expensive because it requires, as properly explain in literature\citep{SDCC}, $3f + 1$ replicas.
+
+Therefore we have adopt a protocol based on \textit{majority voting} inspired to quorum-based protocols applied in replicated-write systems. As explained in literature\citep{SDCC}, in this kind of systems, if processes exhibit arbitrary failures, continuing to run when faulty and sending out erroneous or random replies, a minimum of $2f+1$ processes are needed to achieve $f$-fault tolerance. In the worst case, the $f$ failing processes could accidentally generate the same reply. However, the remaining $f+1$ will also produce the same answer, so the LPP just believes the majority.
+
+In our design each map or reduce task scheduled by current LPP are assigned to independent WPGs. Let's try to explain this statement formally using map task as example (but is the same of any task). Let $i = 1,2,3...n$, where $n \in \mathbb{Z}_+$. As MapReduce framework states, our system splits the input text file $S$ in $n$ parts $\lbrace s_1, s_2, ... s_n \rbrace$ called \textit{split}; each split $s_i$ is associated to a map task $m_i \in \lbrace m_1, m_2, ... m_n \rbrace$ every of which must be replicated on multiple WPs to make them arbitrary fault tolerant. Each map task $m_i$ is assigned to a different WPG $g_i \in \lbrace g_1, g_2, ... g_n \rbrace$. As we will explain later, LPP, checking received outputs from each group, we can achieve arbitrary fault tolerance for every scheduled task. Obliviously to tolerate at most $f$ arbitrary failures of each task, each WPG must contains at least $2f+1$ different processes. Then our design requires at least $n(2f+1)$ different WPs.
+
+This design is scalable in several ways: if the number of users or data input size grows, it should be possible to extend the system, at reasonable cost, adding more WPGs. If we want an higher level of arbitrary fault-tolerance, we should add more WP to each WPG, increasing the number PP backups too.
+
+\section{Architecture }
 
 
 
 
 
-
-
-
-
-
-
-\subsection{The algorithm}
-
-To make our system arbitrary fault-tolerant we have followed the approach according to which each task is executed more than once by different processes running on different host. This design requires to organize several identical processes into a group through which became possible to mask one or more faulty processes. 
-
-As known, MapReduce framework splits input file in several splits to each of which a map task is associated; in other words, if an input file is split, for instance, into $n$ elements, primary process has to schedule $n$ map tasks. In order to achieve arbitrary fault-tolerance, each map task has to be executed by a groups of identical process performing given task. According to this design, in order to manage $n$ map tasks, $n$ different groups of processes are needed; these group are called Worker Groups. A worker group is a set of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. This is the reason according to which this design is more expensive than using the original MapReduce runtime or Hadoop.
-
-To be more precise, suppose to have $n$ worker groups and to want tolerate at most $k$ faulty processes for each group. To achieve arbitrary fault-tolerance, we can apply, for instance, a consensus algorithm like Paxos or Raft in order to reach consensus among all processes belonging to a given worker group. However that solution is too expensive because it requires $3f + 1$ replicas; moreover if we have, for instance, $n$ worker groups, we need at least $n(3k + 1)$ processes.
-
-This is the reason according to which we have adopt an 
-An important issue with this design is how much replication is needed. As known, if processes exhibit arbitrary failures, continuing to run when faulty and sending out erroneous or random replies, a minimum of $2k+1$ processes are needed to achieve $k$-fault tolerance. In the worst case, the $k$ failing processes could accidentally generate the same reply. However, the remaining $k+1$ will also produce the same answer, so the primary process just believe the majority. Notice that, for instance, applying consensus algorithm to reach consensus among k group members may suffer from fail-arbitrary failures requires 3f + 1 replicas to tolerate at most f faulty replicas.
-
- we have discarded this option considering it too expensive through which
-
-,
-
-In replicated-write protocols, an update is forwarded to several replicas at the same time. 
-
-
-  we have a group of 3k+1 processes. Our goal is to show that we can establish a solution in which k group members may suffer from fail-arbitrary failures, yet the remaining nonfaulty processes will still reach consensus
-
-
-All worker processes are running are logically split into several \textit{Groups}, that is sets of equal worker processes, each of which execute the same commands using same input data in the same order. In a group all worker processes run independently on different host and they do not interact with each other in any way. Current Leader Primary Process can interact with groups members using a push-based approach in order to schedule map or reduce tasks. Although, for performance reasons, not always happen, when a task is sent to the group itself, all members of the group receive it.
 
 
 
