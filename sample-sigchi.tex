@@ -1,5 +1,7 @@
 \documentclass[sigchi]{acmart}
 
+
+
 \AtBeginDocument{%
   \providecommand\BibTeX{{%
     \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
@@ -49,7 +51,8 @@ Therefore to construct a distributed system capable to provide its services even
 
 Moreover, due to very large data-set involved during data-intensive tasks, exploiting data locality, in order to mitigate network traffic and delay, becomes very important to improve performance.
 
-In these paper we will describe our \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) MapReduce system capable to resolve all issues described above. We implemented our AFTLA MapReduce system from scratch using Go programming language, adopting Apache ZooKeeper\textsuperscript{TM} to provide service for maintaining configuration information and system coordination \footnote{See \url{https://zookeeper.apache.org}}. All libraries used in our implementation are fully described in table \ref{tab:libraries}.
+In these paper we will describe our \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) MapReduce system capable to resolve all issues described above. We have implemented an AFTLA MapReduce system, capable to perform a word-count of a given text input, from scratch using Go programming language, adopting Apache ZooKeeper\textsuperscript{TM} for maintaining configuration information and system coordination \footnote{See \url{https://zookeeper.apache.org}}; all libraries used in our implementation are fully described in table \ref{tab:libraries}. Our prototype    's source code is fully available on GitHub\footnote{See \url{https://github.com/AndreaG93/SDCC-Project}}, famous web-based hosting service for version control using \texttt{git}; we remind that \LaTeX\ source code of this paper is available too\footnote{See \url{https://github.com/AndreaG93/SDCC-Project-Report}}.  
+
 
 \begin{table*}
   \caption{Libraries used in our implementation}
@@ -65,42 +68,53 @@ In these paper we will describe our \textit{Arbitrary Fault-Tolerant Locality-Aw
   \end{tabular}
 \end{table*}
 
-\section{System Architecture}
+\section{Assumptions}
 
-In order to properly describe how our algorithm can tolerate arbitrary faults and to exploit data locality, it is necessary to describe its architecture. 
+In order to properly describe how our algorithm can tolerate arbitrary faults and to exploit data locality, it is necessary to describe its architecture. To do that, in this section we start making some very important assumptions.
 
-\subsection{Assumptions}
-
-Let's start our description making some very important assumptions.
-
-Our system is composed by a \textit{set of distributed processes}, every of which run on different hosts in a same data-center; from an implementation point of view, every process run on his own Amazon EC2 server hosted in a same region (\texttt{us-east-1}). All processes interact with each other using RPC
+Our system is composed by a \textit{set of distributed processes}, every of which run on different hosts in a same data-center; in our prototype, every process run on his own Amazon EC2 server hosted in a same region (\texttt{us-east-1}). All processes interact with each other using RPC
 
 We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use timeouts to state that a process has crashed although, occasionally, such conclusion is false \cite{SDCC}.
 
-All processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by TCP connections. 
+All processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by TCP connections. All system processes use RPC protocol in order to interact with each other.
 
-Clients are \textit{always correct}, because if they are not there is no point in worrying about the correctness of our system's output.
+Clients are \textit{always correct}, because if they are not there is no point in worrying about the correctness of our system's output. Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
 
-Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
+In this paper, we take for granted reader's knowledge of the MapReduce framework and Hadoop implementation. framework.
 
-\subsection{System's processes}
+\section{System's processes}
 
-Our system is made up of three type of process:
+Three kind of process are used in our system:
 
 \begin{description}
-\item[Client Process] Which requests the execution of jobs composed by map and reduce tasks among
+\item[Client Processes] Which send word-count requests to our system sending directly an input text file. 
 
-\item[Primary Process] Similarly to \textit{JobTracker} process used in Apache Hadoop, its duty is to satisfy clients requests, scheduling \textit{map} and \textit{reduce} tasks, coordinating at the same time \textit{worker processes} activities. 
+\item[Worker Process (WP)] They execute \textit{map} or \textit{reduce} scheduled by LPP.
 
-\item[Worker Process] It executes map or reduce task scheduled by current primary process.
+\item[Primary Process (PP)] It is similar to \textit{JobTracker} process used in Apache Hadoop which duty is to satisfy clients requests scheduling \textit{map} or \textit{reduce} tasks. 
 \end{description}
 
-Unlike Hadoop, according to which the \textit{JobTracker} process is assumed always correct, the host where primary process is running may fail, for example by crashing or by losing network connectivity; in other words, primary process's host represents a \textit{single point of failure}. Therefore, to ensure an high system availability, we have adopted an architecture based on multiple primary process copies run on different host, one of which, using a leader election algorithm, is elected as system coordinator. When current leader fails, a backup copy is promoted to become the new coordinator. From an implementation point of view, we used services offered by Apache ZooKeeper to implement our leader election mechanism.
+\subsection{Primary Process}
+At this point, is necessary to make some clarifications about PP's features.
+
+Unlike Hadoop, according to which \textit{JobTracker} process is assumed always correct, the host where PP is running may fail, for example by crashing or by losing network connectivity; in other words, as known in academic literature, PP represents a \textit{single point of failure}.
+
+Therefore, to ensure an high system availability, adopting the same design used in Apache Mesos\textsuperscript{TM}\ \footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, our system architecture is based on multiple PP backup copies run on different machines; using any leader election algorithm, is possible to elect one of these copies as \textit{Leader Primary Process} (LPP) while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current leader fails, a backup copy is promoted to become the new . 
+
+LPP represents our system coordinator since only it can can interact with WP scheduling task using a \textit{push-based} approach (unlike Hadoop according to which JobTracker schedules task using a \textit{pull-based} approach \cite{LARTS})
+
+However, to perform its task, LPP manages various information about clients requests, many of which, as we will see later, are sent by WP after a map or reduce task. In other word, LPP has got a status.
+
+Is very important to specify that LPP status is stored in memory, therefore they are permanently lost after a crash; this design makes our system easier to implement and helps to reducing overhead due to the disk I/O activities. However recover lost in-memory leader state after a failure is required in order to satisfy clients requests. 
+
+Therefore we have adopt a design according to which LPP make a sort of backup, or snapshot, of its current state regularly. To make our implementation easier, in our prototype, considering that LPP state contains a very small amount of data, LPP stores its state in a Zookeeper cluster after some events, like a map task termination. In case of crash failure of current LPP, when a primary process backup becomes leader, it retrieves all data from Apache ZooKeeper cluster, recovering last saved state.
+
+\subsection{Worker Process}
 
 
-In order to achieve its duty, current primary process leader stores various information about requests received by clients, like their status and other informations about worker processes activities. Is very important to specify that such data are stored in memory, therefore they are permanently lost after a crash; this design makes our system  easier to implement and helps to reducing overhead due to the disk I/O activities. However recover lost in-memory leader state after a failure is required in order to satisfy clients requests. During each step of MapReduce framework, current primary leader process save current client requests status using an external fault tolerant services, in our case Apache zookeeper. When a primary process backup becomes leader, it retrieves all data from Apache ZooKeeper, restarting all pending client request from last saved state.
 
-Current leader primary process can interact with worker processes using a push-based approach in order to schedule map or reduce tasks.
+
+
 
 
 
@@ -168,7 +182,7 @@ A key question is how to schedule reduce tasks at Task Trackers so as to diminis
 As we will be able to explain later, this design allows us to exploit data locality to increase system performance; in fact, when 
 
 
-
+From an implementation point of view, we used services offered by Apache ZooKeeper to implement our leader election mechanism.
 
 
 
