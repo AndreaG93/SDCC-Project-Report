@@ -1,5 +1,6 @@
 \documentclass[sigchi]{acmart}
-
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
 
 
 \AtBeginDocument{%
@@ -159,20 +160,50 @@ Assume for simplicity that no faults occurs and to have only two WPGs $\lbrace g
 
 Suppose that $P_{1:g_1}$, $P_{2:g_1}$, $P_{1:g_2}$ and $P_{2:g_2}$ have a size of 300 MB, 150 MB, 150 MB and 300 MB respectively. Clearly, scheduling $R_1$ at $g_1$ and $R_2$ at $g_2$ reduce the amount of transferred data among WPGs by 50\%. Obliviously using this approach is possible to perform a locality-aware shuffle task capable to reduce network traffic, applying locality to reduce task scheduling.  
 
+\section{Implementation}
 
+In this last section we will describe some main aspect of our implementation.
 
+\subsection{Crash failure detection} To guarantee the correct functioning of the system, is critical to be able to detect WP and PP crash failure. To resolve this problem we have exploited some features of Apache Zookeeper. 
 
-
-
-\subsection{Crash failure detection} To manage and detect workers processes crash faults we have use some features of Apache Zookeeper. 
-
-As known, Apache ZooKeeper has the notion of \textit{ephemeral nodes}, that is special znodes which exists as long as the \textit{session} that created the znode is active. When session expiration occurs, Zookeeper cluster will delete all ephemeral nodes owned by that session and immediately notify all connected clients of the change.
+As known, Apache ZooKeeper has the notion of \textit{ephemeral nodes}, special znodes which exists as long as the \textit{session} that created the znode is active. When session expiration occurs, Zookeeper cluster will delete all ephemeral nodes owned by that session and immediately notify all connected clients of the change.
 
 When any client establishes a session with a Zookeeper cluster, a time-out value is used by the cluster to determine when the client's session expires. Expirations usually happens when the cluster does not hear from the client within the specified session time-out period (i.e. no heartbeat).
 
-Notice that session is kept alive by requests sent by client, therefore is critical that client will send PING request to keep the session alive. This PING request not only allows the ZooKeeper server to know that the client is still active, but it also allows the client to verify that its connection to the ZooKeeper server is still active.
+Therefore using that feature, we adopted a very simple design according to which any process must to "sign up" creating his own ephemeral node in Zookeeper Cluster in known paths (note that znode paths of PPs and WPs are different in order to not interfere with leader election of PPs). 
 
-Using this design, is very easy to keep check the status of worker processes.
+It will be the responsibility of LPP to watch for WP's ephemeral node deletions; this approach makes WP status checking very simple. System coordination and membership is facilitated too, since any ephemeral node is used to store information about process that created (ID, Group ID etc.).
+
+\subsection{Primary process leader election algorithm}
+
+\begin{algorithm}
+\caption{}\label{alg:leaderElection}
+\begin{enumerate}
+
+\item Let \texttt{ROOT} be a valid znode path. Any PP, which wants to become leader, creates a new znode $Z$ with path \texttt{ROOT/$x$}, where $x$ is a number. Using both \texttt{SEQUENCE} and \texttt{EPHEMERAL} flags, $x$ will be the sequence number greater than any one previously used.
+
+\item Let $C$ be the children of \texttt{ROOT}. 
+
+\item If $Z$ is the smallest node in $C$, that is $x$ is the smallest sequence number used so far, then the PP that created $Z$ will become leader.
+
+\begin{enumerate}
+
+\item Otherwise watch for changes on znode \texttt{ROOT/$j$} in C, where $j$ is the largest sequence number such that $j$ < $x$.
+
+\item Upon receiving a notification of znode deletion, go to step number 2. 
+
+\end{enumerate}
+\end{enumerate}
+\end{algorithm}
+
+Let's now describe in details how we have resolved leader election problem of a PP using Apache Zookeeper.
+
+Suppose that \texttt{ROOT} is a valid path of an existing znode. To apply as possible leader, any PP creates a znode child into \texttt{ROOT} using \texttt{SEQUENCE} and \texttt{EPHEMERAL} flags. When \texttt{SEQUENCE} is used, ZooKeeper cluster automatically appends a sequence number to the new znode that is greater than any one previously appended to a child of \texttt{ROOT}. The PP, which created the znode with the smallest appended sequence number, become leader.
+
+Obliviously is important to watch for failures of the leader in a such way that a new PP arises as the new leader when leader fails. Note that, since we have used \texttt{EPHEMERAL} flag during znode creation, when leader fails the smallest znode will be deleted by Zookeeper cluster. if we make sure that all PPs watch for the next znode down on the sequence of znodes, if a PP receives a notification that the znode it is watching is gone, then it becomes the new leader since there is no smaller znode. 
+
+A complete description of leader election algorithm is shown in Algorithm \ref{alg:leaderElection} while our implementation is in \texttt{SDCC-Project/aftmapreduce/cloud/zookeeper}
+
 
 
 
