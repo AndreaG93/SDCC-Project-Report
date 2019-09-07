@@ -106,7 +106,7 @@ At this point, is necessary to make some clarifications about PP's features.
 
 Unlike Hadoop, according to which \textit{JobTracker} process is assumed always correct, the host where PP is running may fail, for example by crashing or by losing network connectivity; in other words, as known in academic literature, PP represents a \textit{single point of failure}.
 
-Therefore, to ensure an high system availability, adopting the same design used in Apache Mesos\textsuperscript{TM}\ \footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, our system architecture is based on multiple PP backup copies run on different machines; using any leader election algorithm, is possible to elect one of these copies as \textit{Leader Primary Process} (LPP) while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current leader fails, a backup copy is promoted to become the new . 
+Therefore, to ensure an high system availability, adopting the same design used in Apache Mesos\textsuperscript{TM}\ \footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, our system architecture is based on multiple PP backup copies run on different machines; using any leader election algorithm, is possible to elect one of these copies as \textit{Leader Primary Process} (LPP) while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current leader fails, a backup copy is promoted to become the new leader. 
 
 LPP represents our system coordinator since only it can can interact with WP scheduling task using a \textit{push-based} approach (unlike Hadoop according to which JobTracker schedules task using a \textit{pull-based} approach \cite{LARTS})
 
@@ -159,6 +159,35 @@ To be more precise, when a WP complete a map task, it send as output to LPP two 
 Assume for simplicity that no faults occurs and to have only two WPGs $\lbrace g_1, g_2 \rbrace$. Let $P_{i:g_i}$ the partition owned by WPG $g_i$ which contains all key-value pairs which must be submitted to reduce task $R_i$. The problem is how to perform a locality-aware reduce task scheduling; in other word, which WPG $g_i$ have to run reduce task $R_i$ reducing shuffled data?
 
 Suppose that $P_{1:g_1}$, $P_{2:g_1}$, $P_{1:g_2}$ and $P_{2:g_2}$ have a size of 300 MB, 150 MB, 150 MB and 300 MB respectively. Clearly, scheduling $R_1$ at $g_1$ and $R_2$ at $g_2$ reduce the amount of transferred data among WPGs by 50\%. Obliviously using this approach is possible to perform a locality-aware shuffle task capable to reduce network traffic, applying locality to reduce task scheduling.  
+
+\section{The algorithm}
+
+In this section we will provide a detailed description of our MapReduce algorithm used to fully accomplish any client's word-count request. Our algorithm is made up of five phases every of which have to be successfully completed in order to complete a request.
+
+\subsection{Acceptance phase}
+
+In this initial phase, client queries Zookeeper cluster in order to know who current LPP is by requiring its public internet address.
+
+Then, client send his request directly to LPP including text input data through a RPC call. Then, received text input data is written into a DFS (\textit{Distributed File System)} or, equivalently, into an external storage service (in our prototype, we have adopted Amazon S3), while several client request's meta-data (request's status information, text input data digest etc.) are stored into Zookeeper cluster by LPP. 
+
+Finally, LPP notifies client that his request is been accepted by system; then the client starts to wait for a new notification by Zookeeper cluster (watching a specified znode) which will signalize computation completion.
+
+If any error occurs during this phase, client would have to re-forward its request until it will receive acceptance confirmation. Note that we have adopted a \textit{most-once semantics} to manage duplicated requests; in fact, LPP is able to recognize duplicates re-forward its reply to the client. 
+
+\subsection{Map phase}
+
+LPP splits received text into $n$ splits where $n$ is the number of WPGs currently available in the cluster (this number is checked at runtime). Then LPP starts \textit{Map Phase} during which $n$ \textit{Arbitrary-Fault-Tolerant Map Tasks} (AFT-MTs) are initialized and assigned to every WPGs (note that each WPG manages a different AFT-MT). 
+
+To make this phase fault tolerant, each AFT-MT is replicated using the WPs available into a WPG specified by LPP. As explain in previous sections deferred execution and digest outputs are used. Our prototype is designed to check at runtime the number of currently available WPs into a WPG calculating automatically fault tolerance level (for example if there are three WP currently on-line of a specified group, the system behaves properly in order to tolerate one arbitrary failure).
+
+When all AFT-MTs finish successfully, LPP perform a checkpoint storing into Zookeeper cluster a set of meta-data used to restore LPP status in case of crash (these data include digest outputs from WPGs and some information about computed data outputs owned by WPGs). 
+
+In case of LPP crash (also an high amount of arbitrary fails of WPs determines a LPP crash), after using our leader election algorithm, a PP backup copy becomes leader. Then the new leader recovers previous leader's status from last checkpoint querying Zookeeper cluster. All pending requests are restarted according to last checkpoint while input text data are retrieved, if necessary, from DFS or an equivalent storage service. 
+
+
+
+
+
 
 \section{Implementation}
 
