@@ -164,15 +164,25 @@ Suppose that $P_{1:g_1}$, $P_{2:g_1}$, $P_{1:g_2}$ and $P_{2:g_2}$ have a size o
 
 In this section we will provide a detailed description of our MapReduce algorithm used to fully accomplish any client's word-count request. Our algorithm is made up of five phases every of which have to be successfully completed in order to complete a request.
 
+\subsection{Data upload phase}
+
+The first phase of our algorithm expects that client would upload their test input file into a DFS (\textit{Distributed File System)} or, equivalently, into an external storage service.
+
+Although the simplicity of this algorithm's phase, there are some very important consideration about our prototype. Unlike Hadoop which use HDFS (\textit{Hadoop Distributed File System}) to store clients input data, our implementation adopts a cloud storage service called Amazon S3. However, according to Amazon S3 implementation, since all objects and directories (called \textit{buckets}), by default, are private, clients cannot upload or download data without AWS security credentials or permissions.
+
+Therefore, in order to able clients to upload input data into Amazon S3, we have adopted a design based on \textit{pre-signed URLs}. According to Amazon AWS documentation, anyone who receives a valid pre-signed URL can then upload (or download) an object. However only someone that has a valid security credentials can create a pre-signed URL. 
+
+Therefore, in order to successfully upload an object, clients must obtain a pre-signed URL asking to LPP, which  have necessary privileges for pre-signed URL creation\footnote{To give all privileges required for pre-signed URL creation to our EC2 instances, where LPP are running, we have properly set the IAM Roles thought "\textit{AWS Identity and Access Management service}" (IAM)}.
+ 
+So, to get a pre-signed URL, clients query Zookeeper cluster in order to know who is the current LPP by requiring its public internet address. Then, client sends a request to LPP in order to obtain a pre-signed URL through which input text file will been uploaded. 
+
 \subsection{Acceptance phase}
 
-In this initial phase, client queries Zookeeper cluster in order to know who current LPP is by requiring its public internet address.
+After data upload, client send a request to current LPP. 
 
-Then, client send his request directly to LPP including text input data through a RPC call. Then, received text input data is written into a DFS (\textit{Distributed File System)} or, equivalently, into an external storage service (in our prototype, we have adopted Amazon S3), while several client request's meta-data (request's status information, text input data digest etc.) are stored into Zookeeper cluster by LPP. 
+As soon as LPP receives a client's request, it starts to write several request's meta-data (request's status information, text input data digest etc.) into Zookeeper cluster. Finally, LPP notifies client that his request is been accepted by system. Then, client starts to wait for a new notification by Zookeeper cluster (watching a specified znode) which will signalize computation completion.
 
-Finally, LPP notifies client that his request is been accepted by system; then the client starts to wait for a new notification by Zookeeper cluster (watching a specified znode) which will signalize computation completion.
-
-If any error occurs during this phase, client would have to re-forward its request until it will receive acceptance confirmation. Note that we have adopted a \textit{most-once semantics} to manage duplicated requests; in fact, LPP is able to recognize duplicates re-forward its reply to the client. 
+If any error occurs during this phase, client would have to re-forward its request to LPP until it will receive acceptance confirmation. Note that we have adopted a \textit{most-once semantics} to manage duplicated requests; in fact, LPP is able to recognize duplicates re-forward its reply to the client. If LPP crashes, client queries Zookeeper cluster in order to know who is the new LPP.
 
 \subsection{Map phase}
 
@@ -182,7 +192,11 @@ To make this phase fault tolerant, each AFT-MT is replicated using the WPs avail
 
 When all AFT-MTs finish successfully, LPP perform a checkpoint storing into Zookeeper cluster a set of meta-data used to restore LPP status in case of crash (these data include digest outputs from WPGs and some information about computed data outputs owned by WPGs). 
 
-In case of LPP crash (also an high amount of arbitrary fails of WPs determines a LPP crash), after using our leader election algorithm, a PP backup copy becomes leader. Then the new leader recovers previous leader's status from last checkpoint querying Zookeeper cluster. All pending requests are restarted according to last checkpoint while input text data are retrieved, if necessary, from DFS or an equivalent storage service. 
+In case of LPP crash (note that also an high amount of arbitrary fails of WPs determines a LPP crash), after using our leader election algorithm, a PP backup copy becomes leader. Then the new leader recovers previous leader's status from last checkpoint querying Zookeeper cluster. All pending requests are restarted according to last checkpoint while input text data are retrieved, if necessary, from DFS or an equivalent storage service. 
+
+\subsection{Locality-aware shuffle and reduce phase}
+
+
 
 
 
