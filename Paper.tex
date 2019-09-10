@@ -219,11 +219,15 @@ So, to get a pre-signed URL, clients query Zookeeper cluster in order to know wh
 
 \subsection{Acceptance phase}
 
-After data upload, client send a request to current LPP. 
+After data upload, client sends a word-count request to current LPP. 
 
-As soon as LPP receives a client's request, it starts to write several request's meta-data (request's status information, text input data digest etc.) into Zookeeper cluster. Finally, LPP notifies client that his request is been accepted by system. Then, client starts to wait for a new notification by Zookeeper cluster (watching a specified znode) which will signalize computation completion.
+When that request is been received, LPP, after to have written into Zookeeper cluster all necessary information  in order restore its state after a crash failure (request's status information, text input data digest etc.),  notifies client that his request is been accepted by system, starting Map phase.
 
-If any error occurs during this phase, client would have to re-forward its request to LPP until it will receive acceptance confirmation. Note that we have adopted a \textit{most-once semantics} to manage duplicated requests; in fact, LPP is able to recognize duplicates re-forward its reply to the client. If LPP crashes, client queries Zookeeper cluster in order to know who is the new LPP.
+When LPP response is been received, client starts to wait for a new notification by Zookeeper cluster (watching a specified znode) which will signalize computation completion.
+
+If any error occurs during this phase, client have to re-forward its request to LPP until it will receive acceptance confirmation. 
+
+Note that our system is able to manage duplicated requests because we have adopted a \textit{most-once semantics}; in fact, LPP is able to recognize duplicates re-forwarding its reply to client while client, if it detects that LPP is been crashed, forwards a query to Zookeeper cluster in order to know who is the new LPP.
 
 \subsection{Map phase}
 
@@ -249,7 +253,7 @@ If too many arbitrary errors occur, making AFT-RTs completion impossible, it's e
 
 When reducer phase is fully done, LPP start to retrieve all reduce outputs from WPs. To be more precise, for every available WPG in system LPP picks a single WP which, according to data received during last phase, has computed correct outputs.
 
-Then all reduce outputs are finally concatenated in an single output file by LPP which store these data into Zookeeper Cluster. LPP informs the client which can retrieve his output from Zookeeper cluster.
+Then all reduce outputs are finally concatenated in an single output file. LPP stores output file into Amazon S3 using its digest as key. Then LPP informs the client sending output file digest through which client can retrieve his output.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{Bibliography}
