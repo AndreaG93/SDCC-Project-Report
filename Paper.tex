@@ -42,17 +42,23 @@ Although job's execution using our system requires more resources respect to oth
 
 \section{Introduction}
 
-Various data-intensive tasks, like seismic simulation, natural language processing, machine learning, astronomical data parsing, web data mining and many other, require a processing power that exceeds the capabilities of individual computers imposing the use of a \textit{distributed computing} \cite{LARTS}.
+Various data-intensive tasks, like seismic simulation, natural language processing, machine learning, astronomical data parsing, web data mining and many others, require a processing power that exceeds the capabilities of individual computers imposing the use of a \textit{distributed computing} \cite{LARTS}.
 
 Nowadays many famous distributed applications use MapReduce framework as solution for processing large data sets in a distributed environment. In order to properly provide services to an increasing number of users worldwide, is necessary to connect together thousands of computers and hundreds of other devices like network switches, routers and power units, moving consequently an huge amount of data between computers. 
 
-However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future due to increasing number of computers connected to internet \citep{BFLMapReduce}. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures \cite{PetaScaleFailure}. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{DRAMError}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent. \cite{MicrosoftStudyFailure} Moreover moving large amount of data repeatedly to distant nodes is becoming the bottleneck owing to an increased network traffic causing performance degradation.
+However, as many studies confirm, \textit{hardware component failures are frequent} and they will probably happen more often in the future due to increasing number of computers connected to internet \citep{BFLMapReduce}. Is been documented that in the first year of a cluster at Google there were 1000 individual machine failures and thousands of hard drive failures \cite{PetaScaleFailure}. A recent study of DRAM errors in a large number of servers in Google data-centres for 2.5 years concluded that these errors are more prevalent than previously believed, with more than 8\% DIMM affected by errors yearly, even if protected by error correcting codes (ECC) \cite{DRAMError}. A Microsoft study of 1 million consumer PCs shown that CPU and core chipset faults are also frequent \cite{MicrosoftStudyFailure}. Moreover moving large amount of data repeatedly among distant nodes is becoming the bottleneck owing to an increased network traffic, causing significant performance degradation.
 
-Therefore to construct a distributed system capable to provide its services even in the presence of failures is become so critical; consequently, to provide a \textit{fault tolerant} cloud application represents an important goal in distributed-systems design. 
+Therefore to construct a distributed system capable to provide its services even in the presence of failures, that is to design a \textit{fault tolerant} cloud application, is a critical aspect of software engineering.
 
-Moreover, due to very large data-set involved during data-intensive tasks, exploiting data locality, in order to mitigate network traffic and delay, becomes very important to improve performance.
+Moreover, due to very large data-set involved during data-intensive tasks, exploiting data locality becomes crucial aspect in order to mitigate network traffic and delay, improving so performance.
 
-In these paper we will describe our \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) MapReduce system capable to resolve all issues described above. We have implemented an AFTLA MapReduce system, capable to perform a word-count of a given text input, from scratch using Go programming language, adopting Apache ZooKeeper\textsuperscript{TM} for maintaining configuration information and system coordination \footnote{See \url{https://zookeeper.apache.org}}; all libraries used in our implementation are fully described in table \ref{tab:libraries}. Our prototype    's source code is fully available on GitHub\footnote{See \url{https://github.com/AndreaG93/SDCC-Project}}, famous web-based hosting service for version control using \texttt{git}; we remind that \LaTeX\ source code of this paper is available too\footnote{See \url{https://github.com/AndreaG93/SDCC-Project-Report}}.  
+In these paper we will describe an \textit{Arbitrary Fault-Tolerant Locality-Aware} (AFTLA) MapReduce system which is capable to resolve all issues described above. 
+
+Our AFTLA MapReduce prototype, which is capable to perform a word-count by a given text input file, is been implemented from scratch using Go programming language using some external libraries, including those necessary to interact with an Apache ZooKeeper\textsuperscript{TM} cluster\footnote{\url{https://zookeeper.apache.org}}, which we have adopt for system's coordination purposes, and with Amazon AWS services, because we have adopt Amazon S3 for storage; note that all libraries used in our prototype are fully described in table \ref{tab:libraries}. 
+
+Our prototype is been design to run into several Amazon EC2 instances hosted in a same region (\texttt{us-east-1})\footnote{Note that, due to Account AWS Educate Starter limitations, we could not run Amazon EC2 instances on other regions.}, adopting AWS Elastic IP\footnote{\url{https://docs.aws.amazon.com/en_us/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html}} to associate some of our EC2 instance to an public IPv4 address in order to enable communication with the internet and then to connect a local computer to our system. 
+
+Finally, we remember that our prototype's source code is fully available on GitHub\footnote{\url{https://github.com/AndreaG93/SDCC-Project}}, famous web-based hosting service for version control using \texttt{git}; we remind that \LaTeX\ source code of this paper is available too\footnote{See \url{https://github.com/AndreaG93/SDCC-Project-Report}}.  
 
 
 \begin{table*}
@@ -73,15 +79,15 @@ In these paper we will describe our \textit{Arbitrary Fault-Tolerant Locality-Aw
 
 In order to properly describe how our algorithm can tolerate arbitrary faults and to exploit data locality, it is necessary to describe its architecture. To do that, in this section we start making some very important assumptions.
 
-Our system is composed by a \textit{set of distributed processes}, every of which run on different hosts in a same data-center; in our prototype, every process run on his own Amazon EC2 server hosted in a same region (\texttt{us-east-1}). All processes interact with each other using RPC
+Our system is composed by a \textit{set of distributed processes}, every of which run on different hosts in a same data-center.
 
 We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use timeouts to state that a process has crashed although, occasionally, such conclusion is false \cite{SDCC}.
 
-All processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by TCP connections. All system processes use RPC protocol in order to interact with each other.
+All processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by TCP connections. In our prototype, all system's processes use RPC protocol in order to interact with each other.
 
 Clients are \textit{always correct}, because if they are not there is no point in worrying about the correctness of our system's output. Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
 
-In this paper, we take for granted reader's knowledge of the MapReduce framework and Hadoop implementation. framework.
+In this paper, we take for granted reader's knowledge of the MapReduce framework and main aspects of Hadoop  framework.
 
 \section{System's model}
 
@@ -89,26 +95,27 @@ In this paper, we take for granted reader's knowledge of the MapReduce framework
   \centering
   \includegraphics[width=\linewidth]{Architecture}
   \caption{System Architecture}
+  \label{fig:model}
 \end{figure}
 
-Three kind of process are used in our system:
+As you can see from figure \ref{fig:model}, three kind of process exist in our system:
 
 \begin{description}
-\item[Client Processes] Which send word-count requests to our system sending directly an input text file. 
+\item[Client Processes] Which sends (word-count) requests to our system.
 
-\item[Worker Process (WP)] They execute \textit{map} or \textit{reduce} scheduled by LPP.
+\item[Worker Process (WP)] They execute \textit{map} or \textit{reduce} tasks scheduled by system's leader.
 
-\item[Primary Process (PP)] It is similar to \textit{JobTracker} process used in Apache Hadoop which duty is to satisfy clients requests scheduling \textit{map} or \textit{reduce} tasks. 
+\item[Primary Process (PP)] It is similar to \textit{JobTracker} process used in Apache Hadoop which duty is to satisfy clients requests scheduling \textit{map} or \textit{reduce} tasks to WPs, coordinating all system. 
 \end{description}
 
 \subsection{Primary Process}
 At this point, is necessary to make some clarifications about PP's features.
 
-Unlike Hadoop, according to which \textit{JobTracker} process is assumed always correct, the host where PP is running may fail, for example by crashing or by losing network connectivity; in other words, as known in academic literature, PP represents a \textit{single point of failure}.
+Unlike Hadoop, according to which \textit{JobTracker} process is assumed always correct, we have design our system believing that the host where PP is running may fail, for example by crashing or by losing network connectivity; in other words, as known in academic literature, PP represents for us a \textit{single point of failure}.
 
-Therefore, to ensure an high system availability, adopting the same design used in Apache Mesos\textsuperscript{TM}\ \footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, our system architecture is based on multiple PP backup copies run on different machines; using any leader election algorithm, is possible to elect one of these copies as \textit{Leader Primary Process} (LPP) while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current leader fails, a backup copy is promoted to become the new leader. 
+Therefore, to ensure an high system availability, adopting the same design used in Apache Mesos\textsuperscript{TM}\ \footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, our system architecture is based on multiple PP backup copies run on \textit{different machines} (in our prototype, on different EC2 instances); using a leader election algorithm, is possible to elect one of these copies as leader, becoming the \textit{Leader Primary Process} (LPP), while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current LPP fails, a backup copy is promoted to become the new leader. 
 
-LPP represents our system coordinator since only it can can interact with WP scheduling task using a \textit{push-based} approach (unlike Hadoop according to which JobTracker schedules task using a \textit{pull-based} approach \cite{LARTS})
+, only LPP can interact with WPs and modify data into the Zookeeper Cluster. Note that LPP schedules several task using a \textit{push-based} approach (unlike Hadoop according to which JobTracker schedules task using a \textit{pull-based} approach \cite{LARTS})
 
 However, to perform its task, LPP manages various information about clients requests, many of which, as we will see later, are sent by WP after a map or reduce task. In other word, LPP has got a status.
 
