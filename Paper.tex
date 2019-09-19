@@ -40,7 +40,7 @@ In this paper we present an original MapReduce runtime system capable both to to
 Although job's execution using our system requires more resources respect to other implementations, we believe that this cost is acceptable for critical applications that require an higher level of fault tolerance.
 \end{abstract}
 
-\keywords{MapReduce, Fault tolerance, Arbitrary failure, Data locality}
+\keywords{MapReduce, Arbitrary Fault Tolerance, Locality Awareness, Speculative Execution, Leader Election Algorithm, Deferred Execution}
 \maketitle
 
 \section{Introduction}
@@ -61,7 +61,7 @@ Our AFTLA MapReduce prototype, which is capable to perform a word-count by a giv
 
 Our prototype is been design to run into several Amazon EC2 instances hosted in a same region (\texttt{us-east-1})\footnote{Note that, due to Account AWS Educate Starter limitations, we could not run Amazon EC2 instances on other regions.}, adopting AWS Elastic IP\footnote{\url{https://docs.aws.amazon.com/en_us/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html}} to associate some of our EC2 instance to an public IPv4 address in order to enable communication with the internet and then to connect a local computer to our system. 
 
-Finally, we remember that our prototype's source code is fully available on GitHub\footnote{\url{https://github.com/AndreaG93/SDCC-Project}}, famous web-based hosting service for version control using \texttt{git}; we remind that \LaTeX\ source code of this paper is available too\footnote{See \url{https://github.com/AndreaG93/SDCC-Project-Report}}.  
+Finally, we remember that our prototype's source code is fully available on GitHub\footnote{\url{https://github.com/AndreaG93/SDCC-Project}}, famous web-based hosting service for version control using \texttt{git}; we remind that \LaTeX\ source code of this paper is available too\footnote{See \url{https://github.com/AndreaG93/SDCC-Project-Report}}. In this paper, we take for granted reader's knowledge of the MapReduce framework and part of Hadoop framework.
 
 
 \begin{table*}
@@ -80,17 +80,15 @@ Finally, we remember that our prototype's source code is fully available on GitH
 
 \section{Assumptions}
 
-In order to properly describe how our algorithm can tolerate arbitrary faults and to exploit data locality, it is necessary to describe its architecture. To do that, in this section we start making some very important assumptions.
+In order to properly describe how our system can achieve a certain level of arbitrary fault tolerance without unduly compromising performance, let's start making some very important assumptions.
 
-Our system is composed by a \textit{set of distributed processes}, every of which run on different hosts in a same data-center.
+We have designed our cloud application as a \textit{set of processes}, every of which have to run on \textit{different} servers with a certain replication degree in order to achieve a certain level of arbitrary fault tolerance. Available processes are not all the same but several kind of these exist with its own features and aims which we will describe them in detail in following section; in fact, we distinguish three process type: \textit{Client Process}, \textit{Primary Process} (PP) and \textit{Worker Process} (WP); 
 
-We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use timeouts to state that a process has crashed although, occasionally, such conclusion is false \cite{SDCC}.
+We assume that our system runs \textit{asynchronously}, that is no assumptions about process execution speeds or message delivery times are made; therefore we can normally use a time-out to state that a process has crashed although, occasionally, such conclusion is false \cite{SDCC}.
 
-All processes are connected by \textit{reliable channels}, so no messages are lost, duplicated or corrupted; that feature is guaranteed by TCP connections. In our prototype, all system's processes use RPC protocol in order to interact with each other.
+We assume that all processes are connected by \textit{reliable channels}, that is no messages are lost, duplicated or corrupted. In our prototype that feature is guaranteed  by the use of Go implementation of RPC\footnote{\url{https://golang.org/pkg/net/rpc/}} (\textit{Remote Procedure Call}) which is based on TCP connections. Mostly all RPC calls, except those made by the client process, are asynchronous\footnote{Although Go's \texttt{rpc} package provides its own support for RPC asynchronous calls, we have  preferred to adopt an equivalent approach based on properly used goroutine and channels.}.
 
 Clients are \textit{always correct}, because if they are not there is no point in worrying about the correctness of our system's output. Finally we assume the existence of an hash function that is \textit{collisions-resistant}, for which it is infeasible to find two inputs that produce the same output.
-
-In this paper, we take for granted reader's knowledge of the MapReduce framework and main aspects of Hadoop  framework.
 
 \section{System's model}
 
@@ -118,11 +116,10 @@ However clients process are unaware of CLPP network location which, as we will s
 Since, as we will see, is possible to know network location of a specified process querying Zookeeper cluster, clients are able to know where CLPP is both to require pre-signed URL and to submit jobs.
 
 \subsection{Primary Process}
-At this point, is necessary to make some clarifications about PP's features.
 
-Unlike Hadoop, according to which \textit{JobTracker} process is assumed always correct, we have design our system believing that the host where PP is running may fail, for example by crashing or by losing network connectivity; in other words, as known in academic literature, PP represents for us a \textit{single point of failure}.
+Most of the activities carried out by a Primary Process (PP) are very similar to those performed by \textit{JobTracker} process used in Apache Hadoop framework. These activities including \textit{Map-Task} or \textit{Reduce-Task} scheduling, pre-signed URLs generation, managing of worker nodes replies, clients request managing and so on.
 
-Therefore, to ensure an high system availability, adopting the same design used in Apache Mesos\textsuperscript{TM}\ \footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, our system architecture is based on multiple PP backup copies run on \textit{different machines} (in our prototype, on different EC2 instances); using a leader election algorithm, is possible to elect one of these copies as leader, becoming the \textit{Leader Primary Process} (LPP), while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current LPP fails, a backup copy is promoted to become the new leader. 
+However unlike Apache Hadoop framework, according to which \textit{JobTracker} process is assumed always correct, we have design our system believing that the host where PP is running may fail, for example by crashing or by losing network connectivity; in other words, as known in academic literature, PP represents for us a \textit{single point of failure}. Therefore, to ensure an high system availability, inspired by Apache Mesos\textsuperscript{TM}\ architecture\footnote{See \url{http://mesos.apache.org/documentation/latest/architecture/}}, we have adopt a design according to which multiple PP backup copies exist and they run on \textit{different machines} (in our prototype, on different EC2 instances); using a leader election algorithm, is possible to elect one of these copies as leader, becoming the \textit{Leader Primary Process} (LPP), while all the others remain on stand-by. Using this approach, is possible to manage PP crash failure: when current LPP fails, a backup copy is promoted to become the new leader. 
 
 , only LPP can interact with WPs and modify data into the Zookeeper Cluster. Note that LPP schedules several task using a \textit{push-based} approach (unlike Hadoop according to which JobTracker schedules task using a \textit{pull-based} approach \cite{LARTS})
 
