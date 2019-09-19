@@ -2,7 +2,6 @@
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
 
-
 \AtBeginDocument{%
   \providecommand\BibTeX{{%
     \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
@@ -26,6 +25,10 @@
 }
 
 \renewcommand{\shortauthors}{Andrea Graziani (0273395)}
+
+
+
+
 
 \begin{abstract}
 \textit{MapReduce} is a programming paradigm developed by Google that enables massive scalability across hundreds or thousands of servers allowing to process very large data-set \cite{IBMWhatIsMapReduce}.
@@ -91,22 +94,28 @@ In this paper, we take for granted reader's knowledge of the MapReduce framework
 
 \section{System's model}
 
+As you can see from figure \ref{fig:model}, our system is made up of several kinds of processes each of which has its own features and purposes.
+
 \begin{figure}[h]
   \centering
-  \includegraphics[width=\linewidth]{Architecture}
+  \includegraphics[width=\linewidth]{Architecture.png}
   \caption{System Architecture}
   \label{fig:model}
 \end{figure}
 
-As you can see from figure \ref{fig:model}, three kind of process exist in our system:
+\subsection{Client Process}
 
-\begin{description}
-\item[Client Processes] Which sends (word-count) requests to our system.
+This process, which, as said previously, is assumed always correct, is the place where (word-count) jobs are submitted to our system. 
 
-\item[Worker Process (WP)] They execute \textit{map} or \textit{reduce} tasks scheduled by system's leader.
+It can interact with system's key-value storage service (i.e. DFS or an equivalently cloud key-value storage service) for job's input uploading and job's output downloading using HTTP-based RESTful APIs, according to which both an URL and the use of standard HTTP methods (\texttt{GET} and \texttt{PUT}) only are required in order to perform data transmission between our cloud system and client
 
-\item[Primary Process (PP)] It is similar to \textit{JobTracker} process used in Apache Hadoop which duty is to satisfy clients requests scheduling \textit{map} or \textit{reduce} tasks to WPs, coordinating all system. 
-\end{description}
+Is very important to specify that, in our system, URLs are provided by current leader primary process (CLPP) for security and compatibility reasons with some cloud storage services. In fact, unlike Hadoop, which use HDFS (\textit{Hadoop Distributed File System}) to store input and output data, our prototype adopts Amazon S3 for data storage purposes. According to Amazon S3 implementation, since all objects and directories (latter are called \textit{buckets}) are by default private, clients cannot upload or download data without AWS security credentials or permissions.
+
+Therefore, rather than distribute AWS security credentials which can imply huge security risks, we have adopt a design according to which client processes have to request special URLs to CLPP to accomplish their data transmissions; these kind of URLs are called \textit{pre-signed URLs}. According to Amazon AWS documentation, anyone who receives a valid pre-signed URL can upload (or download) an object from Amazon S3. However only someone that has a valid security credentials can create a pre-signed URL; this is the reason according to which CLPP, which has AWS security credentials to interact with Amazon S3\footnote{We remember that to give all privileges required for pre-signed URL creation to the EC2 instances where CLPP are running, we have to properly set all necessary IAM Roles thought "\textit{AWS Identity and Access Management service}" (IAM)}, has to generate and distribute them to clients.
+
+However clients process are unaware of CLPP network location which, as we will see in the next paragraph, can change during system activities due to either a crash or connectivity lost. To be more precise any system's process know network location of the others although Zookeeper cluster location, which we have adopt for membership managing and coordination purposes, must be known by everyone; therefore we can state that location transparency of our application is only partial. 
+
+Since, as we will see, is possible to know network location of a specified process querying Zookeeper cluster, clients are able to know where CLPP is both to require pre-signed URL and to submit jobs.
 
 \subsection{Primary Process}
 At this point, is necessary to make some clarifications about PP's features.
@@ -149,13 +158,27 @@ This simplistic solution is very expensive because it replicates everything $2f 
 
 To validate task's output, since outputs computed by worker processes can be very large, in order to avoid pointless additional network traffic, we have adopted an approach according to which LPP fetches and compares \textit{digests}, a bit string of a fixed size obtained using a hash function. The main advantage of this technique is that, digest size are many times smaller than task's data output, allowing us to reduce network traffic among servers, increasing system's performance.
 
-\subsection{Deferred execution} We believe that there is no point in always executing $2f + 1$ replicas for each task to usually obtain the same result. 
+\subsection{Locality-Aware Deferred Execution} 
 
-To minimize both the number of copies of tasks executed and the overhead due to network traffic we have adopted a design called \textit{deferred execution}: according to that solution current LPP starts only $f + 1$ replicas of the same task, checking if they all return the same result. If a time-out elapses, or some returned results do not match, more replicas (up to $f$) are started, until there are $f + 1$ matching replies. 
+Waiting for $2f + 1$ matching replies during a AFT Map-Task can be a waste of time especially when no faults occur or we have already received a sufficient number of reply to establish the output's correctness; in other words, we believe that there is no point in always executing $2f + 1$ Map-Task for each AFT Map-Task.
 
-We believe that this this design is also energy-saver and cost-effective since, supposing that arbitrary faults are uncommon, fewer WP are involved into computations respect to basic scheme and, in principle, is possible to start and use a fewer number of servers using auto-scaling techniques (at cost of some latency).
+Therefore, to minimize both the number of Map-Task executed and the overhead due to network traffic, we have adopted a mechanism that we have called \textit{Locality-Aware Deferred Execution}. 
 
-\subsection{Data locality awareness}
+According to that solution, during a AFT Map-Task execution, only $f + 1$ Map-Task replicas are started checking if they all return the same result. If a time-out elapses or some return results do not match, more Map-Task replicas (up to $f$) are started, until we obtain $f + 1$ matching replies. When faults are unlikely, this approach, which we believe to be energy-saver\footnote{Assuming that idle WPs consume less energy respect to non-idle WPs, minimize the number of Map-Task executed involves minimize the amount of electricity used.}, is capable to minimize the number of WPs involved into computations respect to basic scheme, improving overall system performance.
+
+Moreover, this mechanism can reduce overall system response time because it is designed to minimize data transfer time too. When an AFT Map-Task starts $f + 1$ Map-Task replica on WPs, the latter are not chosen at random but according to their network location; in fact, Map-Task are scheduled firstly to the $f + 1$ nearest nodes giving priority to them. Only when we can't get $f + 1$ matching replies, the most distant nodes are used. The most difficult problem consists into determine WP's network location considering the variation of network traffic. In literature, many network proximity evaluation's methods exist which can be static (i.e. hop number) or dynamic (round-trip time evaluation, HTTP request emulation, etc.); in our prototype, we have adopt a very simple network proximity evaluation's method based on \texttt{ping} which able us to evaluate round-trip time among system's nodes. 
+
+\subsection{Speculative Execution}
+
+Although the advantages of the locality-aware deferred execution mechanism, we believe that waiting for $f + 1$ matching Map-Task for every AFT Map-Task results before starting the Reduce-Phase can worsen the time for the job completion, especially when WPs arbitrary failures are uncommon. Formally, assuming that we have $n$ WPG, since we need at least $f + 1$ matching reply from each WPG, we have to wait for at least $n(f + 1)$ replies; all Map-Phase may require long time especially when network traffic or data set size are huge.
+
+A way to increase system's performance reducing its response time is the following: when all scheduled AFT Map-Tasks have received the \textit{first} Map-Task result, LPP starts Reduce-Phase immediately without waiting for each AFT Map-Tasks receive exactly $f + 1$ matching results; in other words, Reduce-Phase starts after one replica of all AFT Map-Tasks finish. Essentially, our system make a bet according to which arbitrary faults are highly unlikely therefore first Map-Task replies are considered as correct. This mechanism is called \textit{Speculative Execution}.
+
+Obviously validate the correctness of first Map-Task replies is critical otherwise job's output can be incorrect. In order to do that, all AFT Map-Tasks keep on waiting their $f + 1$ matching replies even when Reduce-Phase is started. When Map-Phase is fully finish, if is detected that the input used in the Reduce-Phase was not correct, Reduce-Phase will be restarted with the correct input, otherwise we can finish our job in much less time.
+
+Then, when there are no fault or they are unlikely, this design is capable to reduce considerably system's response time. 
+
+\subsection{Data Locality-Aware Reduce Scheduling}
 
 Since in order to achieve fault tolerance we have replicate all task $2f + 1$ times, data transfers among servers are replicated too, generating an huge amount of network traffic. Evidently, when large data set are involved, move data repeatedly among server became a bottleneck.
 
@@ -216,13 +239,7 @@ In this section we will provide a detailed description of our MapReduce algorith
 
 The first phase of our algorithm expects that client would upload their test input file into a DFS (\textit{Distributed File System)} or, equivalently, into an external storage service.
 
-Although the simplicity of this algorithm's phase, there are some very important consideration about our prototype. Unlike Hadoop which use HDFS (\textit{Hadoop Distributed File System}) to store clients input data, our implementation adopts a cloud storage service called Amazon S3. However, according to Amazon S3 implementation, since all objects and directories (called \textit{buckets}), by default, are private, clients cannot upload or download data without AWS security credentials or permissions.
 
-Therefore, in order to able clients to upload input data into Amazon S3, we have adopted a design based on \textit{pre-signed URLs}. According to Amazon AWS documentation, anyone who receives a valid pre-signed URL can then upload (or download) an object. However only someone that has a valid security credentials can create a pre-signed URL. 
-
-Therefore, in order to successfully upload an object, clients must obtain a pre-signed URL asking to LPP, which  have necessary privileges for pre-signed URL creation\footnote{To give all privileges required for pre-signed URL creation to our EC2 instances, where LPP are running, we have properly set the IAM Roles thought "\textit{AWS Identity and Access Management service}" (IAM)}.
- 
-So, to get a pre-signed URL, clients query Zookeeper cluster in order to know who is the current LPP by requiring its public internet address. Then, client sends a request to LPP in order to obtain a pre-signed URL through which input text file will been uploaded. 
 
 \subsection{Acceptance phase}
 
@@ -261,6 +278,8 @@ If too many arbitrary errors occur, making AFT-RTs completion impossible, it's e
 When reducer phase is fully done, LPP start to retrieve all reduce outputs from WPs. To be more precise, for every available WPG in system LPP picks a single WP which, according to data received during last phase, has computed correct outputs.
 
 Then all reduce outputs are finally concatenated in an single output file. LPP stores output file into Amazon S3 using its digest as key. Then LPP informs the client sending output file digest through which client can retrieve his output.
+
+
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{Bibliography}
