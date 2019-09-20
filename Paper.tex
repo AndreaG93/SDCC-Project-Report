@@ -120,7 +120,9 @@ Is very important to specify that LPP status is stored in memory, therefore they
 
 Therefore we have adopt a design according to which LPP save its state regularly. Since LPP state consists on a very small amount of data, we have design LPP to store its state into Apache Zookeeper cluster upon the occurrence of certain events. When a LPP crash failure occurs, the new leader can easily retrieves last saved state from  ZooKeeper cluster. Note that Apache Zookeeper's processes is been replicated too in order to tolerate a certain number of faults upon Zookeeper cluster.
 
-Another difference Hadoop \textit{JobTracker} process regards task scheduling approach. In our design LPP schedules tasks to WP using a \textit{push-based} approach, contrariwise Hadoop JobTracker schedules task using a \textit{pull-based} approach where WP ask for tasks\cite{LARTS}.
+Another very important aspect of PP is its ability to recognize duplicated requests coming from client; adopting a \textit{most-once semantics}, LPP is able to recognize duplicates re-forwarding its reply to client while client process, if it detects that LPP is been crashed, it will forward a query to Zookeeper cluster in order to know who is the new LPP. Note that WP too are designed according to most-once semantics.
+
+Another difference with Hadoop \textit{JobTracker} process regards task scheduling approach. In our design LPP schedules tasks to WP using a \textit{push-based} approach, contrariwise Hadoop JobTracker schedules task using a \textit{pull-based} approach where WP ask for tasks\cite{LARTS}.
 
 \subsection{Worker Process and Groups}
 
@@ -138,7 +140,7 @@ Clearly, this design require more resources respect to classic MapReduce scheme:
 
 Although its very high costs, this design is scalable in several ways: if the number of users or data input size grows, it should be possible to extend the system, at reasonable cost, adding more WPGs. If we want an higher level of arbitrary fault-tolerance, we should add more WP to each WPG (increasing the number of PP backups too).
 
-\section{System features}
+\section{System's features}
 
 At this point high costs of this solution should be clear to reader because everything is replicated $2f + 1$ times as map/reduce task, data transmissions and so on. Can we have a good level of fault tolerance without worsening performance? How can we do AFT-Map Task and AFT-Reduce Task efficiently? 
 
@@ -180,18 +182,22 @@ Using the same Hadoop terminology, map task output, produces by every WPs, are c
 
 To explain how our scheduler works, let's illustrate an example: assume for simplicity to have only two WPGs $\lbrace g_1, g_2 \rbrace$. Let $P_{i:g_i}$ the partition owned by WPG $g_i$ which contains all key-value pairs which must be submitted to reduce task $R_i$. Suppose that $P_{1:g_1}$, $P_{2:g_1}$, $P_{1:g_2}$ and $P_{2:g_2}$ have a size of 300 MB, 150 MB, 150 MB and 300 MB respectively. In this context LPP schedules $R_1$ to $g_1$ and $R_2$ to $g_2$ because in this way is able to reduce transferred data among WPGs by 50\%. In other words, LPP is design to schedule AFT-Reduce Tasks reducing overall amount of shuffled data.
 
-\subsection{Crash failure detection} To guarantee the correct functioning of the system, is critical to be able to detect WP and PP crash failure. To resolve this problem we have exploited some features of Apache Zookeeper. 
+\subsection{Crash failure detection} To guarantee the correct functioning of the system, is critical to be able to detect WP and PP crash failure. 
 
-As known, Apache ZooKeeper has the notion of \textit{ephemeral nodes}, special znodes which exists as long as the \textit{session} that created the znode is active. When session expiration occurs, Zookeeper cluster will delete all ephemeral nodes owned by that session and immediately notify all connected clients of the change.
+As known, Apache ZooKeeper has the notion of \textit{ephemeral nodes}, special znodes which exists as long as the \textit{session} that created the znode is active. When session expiration occurs, Zookeeper cluster will delete all ephemeral nodes owned by that session and immediately notify all connected clients of the change. When any client establishes a session with a Zookeeper cluster, a time-out value is used by the cluster to determine when the client's session expires. Expirations usually happens when the cluster does not hear from the client within the specified session time-out period (i.e. no heartbeat). 
 
-When any client establishes a session with a Zookeeper cluster, a time-out value is used by the cluster to determine when the client's session expires. Expirations usually happens when the cluster does not hear from the client within the specified session time-out period (i.e. no heartbeat).
-
-Therefore using that feature, we adopted a very simple design according to which any process must to "sign up" creating his own ephemeral node in Zookeeper Cluster in known paths (note that znode paths of PPs and WPs are different in order to not interfere with leader election of PPs). 
-
-It will be the responsibility of LPP to watch for WP's ephemeral node deletions; this approach makes WP status checking very simple. System coordination and membership is facilitated too, since any ephemeral node is used to store information about process that created (ID, Group ID etc.).
+Therefore we have exploit this Zookeeper feature design our system in such a way any system's process, except for client process, must to "sign up" creating his own ephemeral node in Zookeeper Cluster before to start to perform its task \footnote{To be precise that ephemeral znodes corresponding to PPs and WPs are stored in different path to not interfere with leader election algorithms}. To be more precise, every WPs, whose ID is \texttt{i} and belonging to WPG \texttt{g}, creates a znode named \texttt{/membership/i\_g}. Then, when any WP crashes, LPP, which watch for changes upon \texttt{/membership} znode path, is notified by Zookeeper
 
 
-\subsection{Primary process leader election algorithm}
+\subsection{Election algorithm}
+
+As we said previously, our system is based on multiple PP backup copies which run independently on different machines. Since we need a leader, let's now describe in details how we have managed leader election problem which we have resolved, once again, using Apache Zookeeper.
+
+Suppose that \texttt{ROOT} is a valid path of an existing znode. To apply as possible leader, any PP creates a znode child into \texttt{ROOT} using \texttt{SEQUENCE} and \texttt{EPHEMERAL} flags. When \texttt{SEQUENCE} is used, ZooKeeper cluster automatically appends a sequence number to the new znode that is greater than any one previously appended to a child of \texttt{ROOT}. The PP, which created the znode with the smallest appended sequence number, become leader.
+
+Obliviously is important to watch for failures of the leader in a such way that a new PP arises as the new leader when leader fails. Note that, since we have used \texttt{EPHEMERAL} flag during znode creation, when leader fails the smallest znode will be deleted by Zookeeper cluster. if we make sure that all PPs watch for the next znode down on the sequence of znodes, if a PP receives a notification that the znode it is watching is gone, then it becomes the new leader since there is no smaller znode. 
+
+A complete description of leader election algorithm is shown in Algorithm \ref{alg:leaderElection}.
 
 \begin{algorithm}
 \caption{}\label{alg:leaderElection}
@@ -213,63 +219,35 @@ It will be the responsibility of LPP to watch for WP's ephemeral node deletions;
 \end{enumerate}
 \end{algorithm}
 
-Let's now describe in details how we have resolved leader election problem of a PP using Apache Zookeeper.
+\section{System's work-flow}
 
-Suppose that \texttt{ROOT} is a valid path of an existing znode. To apply as possible leader, any PP creates a znode child into \texttt{ROOT} using \texttt{SEQUENCE} and \texttt{EPHEMERAL} flags. When \texttt{SEQUENCE} is used, ZooKeeper cluster automatically appends a sequence number to the new znode that is greater than any one previously appended to a child of \texttt{ROOT}. The PP, which created the znode with the smallest appended sequence number, become leader.
-
-Obliviously is important to watch for failures of the leader in a such way that a new PP arises as the new leader when leader fails. Note that, since we have used \texttt{EPHEMERAL} flag during znode creation, when leader fails the smallest znode will be deleted by Zookeeper cluster. if we make sure that all PPs watch for the next znode down on the sequence of znodes, if a PP receives a notification that the znode it is watching is gone, then it becomes the new leader since there is no smaller znode. 
-
-A complete description of leader election algorithm is shown in Algorithm \ref{alg:leaderElection} while our implementation is in \texttt{SDCC-Project/aftmapreduce/cloud/zookeeper}
-
-\section{The algorithm}
-
-In this section we will provide a detailed description of our MapReduce algorithm used to fully accomplish any client's word-count request. Our algorithm is made up of five phases every of which have to be successfully completed in order to complete a request.
+To In this last section we will sum up how our system works in several steps to better understand some aspect of our solution.
 
 \subsection{Data upload phase}
 
-The first phase of our algorithm expects that client would upload their test input file into a DFS (\textit{Distributed File System)} or, equivalently, into an external storage service.
-
-
+In the first place, any client uploads its test input file into Amazon S3 using its digest, obtained making use of SHA-512 hash algorithm, as key. Remember that clients, to perform upload operation, have to require a pre-signed URL to LPP, which network location will be obtained querying Zookeeper cluster.
 
 \subsection{Acceptance phase}
 
-After data upload, client sends a word-count request to current LPP. 
+When data upload is complete, client sends a word-count request to current LPP which execute several initialization operations in order to register incoming request. To be more precise, LPP creates two new znodes into Apache Zookeeper cluster: one of them is used to store request related information (request's status information, text input data digest etc.) necessary to restore LPP state in case of crash; the other is used instead to store the digest of job's output.  
 
-When that request is been received, LPP, after to have written into Zookeeper cluster all necessary information  in order restore its state after a crash failure (request's status information, text input data digest etc.),  notifies client that his request is been accepted by system, starting Map phase.
+If all these znodes are successfully created, received request is considered as "accepted" and clients start to wait for change the output's znode while LPP can start Map-Phase. If any error occurs during this phase, client have to re-forward its request to LPP until it will receive acceptance confirmation; re-forwarding requests is fully safe since LPP can filter duplicated requests. If LPP crashes, clients will wait for a new leader before to re-forwarding its request.
 
-When LPP response is been received, client starts to wait for a new notification by Zookeeper cluster (watching a specified znode) which will signalize computation completion.
+\subsection{Map-Phase}
 
-If any error occurs during this phase, client have to re-forward its request to LPP until it will receive acceptance confirmation. 
+During this phase, LPP fetches input text file from Amazon S3 using the key provided by client; then, it splits it into $n$ parts where $n$ is the number of WPGs currently registered on Zookeeper cluster. Afterwards LPP schedules $n$ AFT-Map Tasks assigning them to each WPG. Fault tolerance mechanism is been already described previously but note that our prototype is designed to check at runtime the number of currently available WPs into a WPG calculating automatically reachable fault tolerance level (for example if there are three WP currently on-line of a specified group, the system behaves properly in order to tolerate one arbitrary failure).
 
-Note that our system is able to manage duplicated requests because we have adopted a \textit{most-once semantics}; in fact, LPP is able to recognize duplicates re-forwarding its reply to client while client, if it detects that LPP is been crashed, forwards a query to Zookeeper cluster in order to know who is the new LPP.
+Normally, when all AFT-Map Tasks finish successfully, LPP performs a checkpoint of request's state writing into Zookeeper cluster all data required to recover from a LPP crash (these data include digest outputs from all WPGs and information about owned partitions size). Since we have adopt speculative execution mechanism, Reduce-Phase will be stared immediately after one replica replies of all AFT Map-Tasks; in this case there is no point on doing a checkpoint because we cannot trust on Map-Phase output used. Therefore, we will make the Map-Phase checkpoint only if speculative execution fails. 
 
-\subsection{Map phase}
+Note that if LPP crashes, the new leader is able to recover all pending requests from last checkpoint restarting them. 
 
-LPP splits received text into $n$ splits where $n$ is the number of WPGs currently available in the cluster (this number is checked at runtime). Then LPP starts \textit{Map Phase} during which $n$ \textit{Arbitrary-Fault-Tolerant Map Tasks} (AFT-MTs) are initialized and assigned to every WPGs (note that each WPG manages a different AFT-MT). 
+\subsection{Shuffle and Reduce Phase}
 
-To make this phase fault tolerant, each AFT-MT is replicated using the WPs available into a WPG specified by LPP. As explain in previous sections deferred execution and digest outputs are used. Our prototype is designed to check at runtime the number of currently available WPs into a WPG calculating automatically fault tolerance level (for example if there are three WP currently on-line of a specified group, the system behaves properly in order to tolerate one arbitrary failure).
-
-When all AFT-MTs finish successfully, LPP perform a checkpoint storing into Zookeeper cluster a set of meta-data used to restore LPP status in case of crash (these data include digest outputs from WPGs and some information about computed data outputs owned by WPGs). 
-
-In case of LPP crash (note that also an high amount of arbitrary fails of WPs determines a LPP crash), after using our leader election algorithm, a PP backup copy becomes leader. Then the new leader recovers previous leader's status from last checkpoint querying Zookeeper cluster. All pending requests are restarted according to last checkpoint while input text data are retrieved, if necessary, from DFS or an equivalent storage service. 
-
-\subsection{Locality-aware shuffle and reduce phase}
-
-Any mapper send to LPP information about computed data like its size. Using all informations collected from each on-line WP during previous phase, LPP perform a locality-aware data shuffle according to which our system avoids transferring large partitions, shuffling smaller ones and saving network bandwidth.
-
-Since, according to our design, any WPG can receive a partition from any other, we need to wait until all mappers complete to certainly designate all the network locations of partitions. When map phase is fully done and all the network locations known, LPP starts to coordinates shuffle phase, ordering to some or all WGs to move part of their data to precisely location. These location are computed in order to shuffle smaller partition only. 
-
-When shuffle phase is fully complete, LPP starts to coordinate $n$ Arbitrary-Fault-Tolerant Reduce Tasks (AFT-RTs) assigning them to every WPGs which now have all necessary data to perform this kind of operation. When all AFT-RTs fully finish, LPP perform another checkpoint in order to restore from an eventual LLP's crash.
-
-If too many arbitrary errors occur, making AFT-RTs completion impossible, it's enough to restart current phase.
+We have already described how we have manage Shuffle and Reduce Phase and, anyhow, there are no relevant concepts to be explored. Just note that another request status checkpoint will be made after the end of Reduce Phase. If too many arbitrary errors occur, it's enough to restart current phase.
 
 \subsection{Retrieve and Collect phase}
 
-When reducer phase is fully done, LPP start to retrieve all reduce outputs from WPs. To be more precise, for every available WPG in system LPP picks a single WP which, according to data received during last phase, has computed correct outputs.
-
-Then all reduce outputs are finally concatenated in an single output file. LPP stores output file into Amazon S3 using its digest as key. Then LPP informs the client sending output file digest through which client can retrieve his output.
-
-
+When reducer phase is fully done, LPP starts to retrieve all AFT-Reduce TASK outputs from each WPG sending a specific request to the nearest and least loaded WP belonging to them. When all outputs are finally retrieved and concatenated in an single output file, LPP stores output file into Amazon S3 using output file digest as key which will be written into Zookeeper cluster. Client process, informed of the completion of his request, can fetch the output's digest from Zookeeper cluster and use it to download output.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{Bibliography}
