@@ -14,7 +14,7 @@
 
 \begin{document}
 
-\title{Byzantine Fault-Tolerant and Locality-Aware Scheduling MapReduce}
+\title{Arbitrary Fault-Tolerant and Locality-Aware MapReduce}
 
 \author{Andrea Graziani}
 \email{andrea.graziani93@outlook.it}
@@ -120,7 +120,7 @@ Is very important to specify that LPP status is stored in memory, therefore they
 
 Therefore we have adopt a design according to which LPP saves its state regularly. Since LPP state consists on a very small amount of data, we have design LPP to store its state into Apache Zookeeper cluster upon the occurrence of certain events. When a LPP crash failure occurs, the new leader can easily retrieves last saved state from  ZooKeeper cluster. Note that Apache Zookeeper's processes is been replicated too in order to tolerate a certain number of faults upon Zookeeper cluster.
 
-Another very important aspect of PP is its ability to recognize duplicated requests coming from client (which can retransmitt a same request) re-forwarding responses; in other words, we have adopt a \textit{most-once semantics}. Note that WP too are designed according to most-once semantics.
+Another very important aspect of PP is its ability to recognize duplicated requests coming from client (which can re-transmit a same request) re-forwarding responses; in other words, we have adopt a \textit{most-once semantics}. Note that WP too are designed according to most-once semantics.
 
 Another difference with Hadoop \textit{JobTracker} process regards task scheduling approach. In our design LPP schedules tasks to WP using a \textit{push-based} approach, contrariwise Hadoop JobTracker schedules task using a \textit{pull-based} approach where WPs ask for tasks\cite{LARTS}.
 
@@ -138,7 +138,7 @@ Formally, let $i = 1,2,3...n$, where $n \in \mathbb{Z}_+$. LPP splits the input 
 
 Clearly, this design requires more resources respect to classic MapReduce scheme: to tolerate at most $f$ arbitrary failures all WPGs have to contain at least $2f+1$ different WPs, therefore a total of $n(2f+1)$ different WPs is required. 
 
-Although its very high costs, this design is scalable in several ways: if the number of users or data input size grows, it should be possible to extend the system, at reasonable cost, adding more WPGs. If we want an higher level of arbitrary fault-tolerance, we should add more WP to each WPG.
+Although its very high costs, this design is scalable in several ways: if the number of users or data input size grows, it should be possible to extend the system, at reasonable cost, adding more WPGs. If we want an higher level of arbitrary fault-tolerance, we should add more WP to each WPG. te 
 
 \section{System's features}
 
@@ -215,7 +215,7 @@ A complete description of leader election algorithm is shown in Algorithm \ref{a
 
 \item Otherwise watch for changes on znode \texttt{ROOT/$j$} in C, where $j$ is the largest sequence number such that $j$ < $x$.
 
-\item Upon receiving a notification of znode deletion, go to step number 2. 
+\item Upon receiving a notification of znode deletion, go to step number 2.
 
 \end{enumerate}
 \end{enumerate}
